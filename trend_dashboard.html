@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Install Trends Dashboard - Time Series Analysis</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- ApexCharts -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+    <style>
+        :root {
+            --bg-base: #060609;
+            --bg-surface: rgba(14, 14, 22, 0.65);
+            --bg-card: rgba(22, 22, 32, 0.45);
+            --border-glow: rgba(16, 185, 129, 0.15); /* Green theme accent */
+            --border-subtle: rgba(255, 255, 255, 0.05);
+            
+            --color-text-main: #f3f4f6;
+            --color-text-muted: #9ca3af;
+            
+            --color-accent: #10b981; /* Theme Accent: Green */
+            --color-pink-game: #FF2A85;
+            
+            --color-beauty-hindi: #a855f7;
+            --color-business-tamil: #06b6d4;
+            --color-comics: #eab308;
+            --color-communication: #3b82f6;
+            --color-entertainment: #d946ef;
+            --color-events: #f97316;
+            --color-dating-german: #ec4899;
+            
+            --font-family: 'Plus Jakarta Sans', sans-serif;
+            
+            --shadow-glow: 0 0 20px rgba(16, 185, 129, 0.15);
+            --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.47);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-base);
+            background-image: 
+                radial-gradient(circle at 10% 15%, rgba(16, 185, 129, 0.06) 0%, transparent 40%),
+                radial-gradient(circle at 90% 85%, rgba(6, 182, 212, 0.04) 0%, transparent 40%);
+            background-attachment: fixed;
+            color: var(--color-text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Dashboard Container */
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            background: rgba(8, 8, 12, 0.9);
+            border-right: 1px solid var(--border-subtle);
+            backdrop-filter: blur(20px);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            z-index: 10;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .logo-section i {
+            color: var(--color-accent);
+            filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.6));
+        }
+
+        .logo-title {
+            font-size: 1.15rem;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            background: linear-gradient(to right, #ffffff, #9ca3af);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .section-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--color-text-muted);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        /* Time machine panel */
+        .time-machine-panel {
+            background: rgba(255, 255, 255, 0.015);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .time-status {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        .status-dot.active {
+            color: #10b981;
+            background-color: #10b981;
+        }
+
+        .status-dot.restricted {
+            color: #ef4444;
+            background-color: #ef4444;
+        }
+
+        .ist-clock {
+            font-size: 1.25rem;
+            font-weight: 700;
+            font-family: monospace;
+            color: #ffffff;
+            margin-top: 4px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+        }
+
+        .simulation-mode-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            margin-top: 6px;
+        }
+
+        .sim-btn-group {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 6px;
+        }
+
+        .sim-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: var(--color-text-muted);
+            font-size: 0.75rem;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sim-btn:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: #ffffff;
+        }
+
+        .sim-btn.active {
+            background: rgba(16, 185, 129, 0.15);
+            border-color: var(--color-accent);
+            color: #ffffff;
+            font-weight: 600;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.15);
+        }
+
+        /* Filter Controls */
+        .filter-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .filter-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .filter-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .filter-value {
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: var(--color-accent);
+        }
+
+        .filter-desc {
+            font-size: 0.7rem;
+            color: var(--color-text-muted);
+            line-height: 1.3;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 36px;
+            height: 20px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.08);
+            transition: .3s;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 2px;
+            bottom: 2px;
+            background-color: #ffffff;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--color-accent);
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(16px);
+        }
+
+        .filter-badge-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .filter-badge {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            color: #d1d5db;
+        }
+
+        /* Main Workspace Area */
+        .main-workspace {
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+
+        /* Header Row */
+        .workspace-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header-title-block h1 {
+            font-size: 1.75rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff 30%, #a1a1aa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .header-title-block p {
+            font-size: 0.875rem;
+            color: var(--color-text-muted);
+            margin-top: 4px;
+        }
+
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .metric-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.1);
+            background: rgba(22, 22, 32, 0.6);
+            box-shadow: var(--shadow-glass);
+        }
+
+        .metric-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .metric-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+        }
+
+        .metric-icon-wrapper {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--color-text-muted);
+        }
+
+        .metric-card:hover .metric-icon-wrapper {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--color-accent);
+        }
+
+        /* Chart Card */
+        .chart-container-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 24px;
+            backdrop-filter: blur(12px);
+            box-shadow: var(--shadow-glass);
+            min-height: 480px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title i {
+            color: var(--color-accent);
+        }
+
+        /* Locked Screen Overlay */
+        .lock-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(6, 6, 9, 0.9);
+            backdrop-filter: blur(20px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            text-align: center;
+            padding: 32px;
+            gap: 20px;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+        }
+
+        .lock-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .lock-icon-container {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 30px rgba(239, 68, 68, 0.15);
+            animation: pulse-red 2s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .lock-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #ffffff;
+        }
+
+        .lock-message {
+            max-width: 480px;
+            font-size: 0.95rem;
+            color: var(--color-text-muted);
+            line-height: 1.6;
+        }
+
+        .countdown-timer-box {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 16px 28px;
+            font-family: monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-accent);
+            letter-spacing: 1px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .countdown-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--color-text-muted);
+            font-family: var(--font-family);
+        }
+
+        /* Table */
+        .table-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 24px;
+            backdrop-filter: blur(12px);
+            box-shadow: var(--shadow-glass);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.85rem;
+        }
+
+        th {
+            padding: 12px 16px;
+            color: var(--color-text-muted);
+            font-weight: 600;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: #d1d5db;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.015);
+            color: #ffffff;
+        }
+
+        .category-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .category-pill .translation-subtext {
+            font-size: 0.65rem;
+            opacity: 0.8;
+            margin-left: 4px;
+            font-weight: normal;
+        }
+
+        .growth-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .growth-badge.high {
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: var(--color-accent);
+        }
+
+        .growth-badge.standard {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--color-text-muted);
+        }
+
+        .green-glow-border {
+            border: 1px solid rgba(16, 185, 129, 0.3) !important;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.08) !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        
+        <!-- Sidebar Controls -->
+        <aside class="sidebar">
+            
+            <!-- Logo Section -->
+            <div class="logo-section">
+                <i data-lucide="trending-up" style="width: 28px; height: 28px;"></i>
+                <span class="logo-title">TrendPlanners</span>
+            </div>
+
+            <!-- Time Display / Status -->
+            <div class="time-machine-panel">
+                <div class="time-status">
+                    <span class="section-title" style="margin: 0;">IST Clock</span>
+                    <span id="status-badge" class="status-dot restricted"></span>
+                </div>
+                <div id="clock-display" class="ist-clock">12:00:00 PM</div>
+                <div id="status-text" class="filter-desc" style="color: var(--color-accent); font-weight: 600;">System Locked</div>
+                
+                <div class="simulation-mode-title">Admin Time Override</div>
+                <div class="sim-btn-group">
+                    <button class="sim-btn active" id="sim-btn-real">
+                        <span>Real System Time</span>
+                        <i data-lucide="clock" style="width: 12px; height: 12px;"></i>
+                    </button>
+                    <button class="sim-btn" id="sim-btn-active">
+                        <span>Simulate 7:30 PM IST (Active)</span>
+                        <i data-lucide="unlock" style="width: 12px; height: 12px;"></i>
+                    </button>
+                    <button class="sim-btn" id="sim-btn-restricted">
+                        <span>Simulate 12:00 PM IST (Locked)</span>
+                        <i data-lucide="lock" style="width: 12px; height: 12px;"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Whitelisting Constraints -->
+            <div>
+                <h3 class="section-title">Required Constraints</h3>
+                <div class="filter-controls">
+                    
+                    <!-- Time window -->
+                    <div class="filter-item">
+                        <div class="filter-label">
+                            <span>Operations Frame</span>
+                            <span class="filter-value">Active</span>
+                        </div>
+                        <span class="filter-desc">Graph works only between 6 PM IST and 9 PM IST.</span>
+                    </div>
+
+                    <!-- Category Letters -->
+                    <div class="filter-item">
+                        <div class="filter-label">
+                            <span>Category prefix</span>
+                            <span class="filter-value">E, C, B Only</span>
+                        </div>
+                        <span class="filter-desc">Only show categories starting with 'E', 'C', or 'B' (e.g. Entertainment, Comics, Business, Beauty).</span>
+                    </div>
+
+                    <!-- Name Start Exclusions -->
+                    <div class="filter-item">
+                        <div class="filter-label">
+                            <span>No X, Y, Z Start</span>
+                            <span class="filter-value">Active</span>
+                        </div>
+                        <span class="filter-desc">Exclude apps starting with 'X', 'Y', or 'Z'.</span>
+                    </div>
+
+                    <!-- Name S exclusions -->
+                    <div class="filter-item">
+                        <div class="filter-label">
+                            <span>No 'S' Contain</span>
+                            <span class="filter-value">Active</span>
+                        </div>
+                        <span class="filter-desc">Exclude app names containing 'S' or 's'.</span>
+                    </div>
+
+                    <!-- Reviews -->
+                    <div class="filter-item">
+                        <div class="filter-label">
+                            <span>Reviews count</span>
+                            <span class="filter-value">&gt; 500</span>
+                        </div>
+                        <span class="filter-desc">Only show apps with user reviews count above 500.</span>
+                    </div>
+
+                    <!-- Translation details -->
+                    <div class="filter-item">
+                        <div class="filter-label">
+                            <span>Graph Translation</span>
+                        </div>
+                        <span class="filter-desc">Beauty &rarr; सौंदर्य (Hindi), Business &rarr; வணிகம் (Tamil), Dating &rarr; Partnersuche (German).</span>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Bypass Switch -->
+            <div style="margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border-subtle);">
+                <div class="filter-item">
+                    <div class="filter-label">
+                        <span>Bypass Filters</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="bypass-filters-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <span class="filter-desc">Disable required filters to show full database trend line.</span>
+                </div>
+            </div>
+
+        </aside>
+
+        <!-- Main Workspace Area -->
+        <main class="main-workspace">
+            
+            <!-- Header -->
+            <div class="workspace-header">
+                <div class="header-title-block">
+                    <h1>Monthly Installs Trend</h1>
+                    <p>Visualizing total installations over a 6-month window segmented by category with growth-shading annotations</p>
+                </div>
+                <div class="filter-badge" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.2); font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="shield-check" style="width: 14px; height: 14px; color: var(--color-accent);"></i>
+                    <span>IST 6 PM - 9 PM Lock Active</span>
+                </div>
+            </div>
+
+            <!-- KPI Row -->
+            <div class="metrics-grid">
+                
+                <!-- KPI 1: Active Categories Plotted -->
+                <div class="metric-card">
+                    <div class="metric-title">
+                        <span>Plotted Categories</span>
+                        <div class="metric-icon-wrapper"><i data-lucide="folder" style="width: 16px; height: 16px;"></i></div>
+                    </div>
+                    <div id="kpi-plotted-categories" class="metric-value">5</div>
+                    <span class="filter-desc">Filtered whitelisted classes</span>
+                </div>
+
+                <!-- KPI 2: High Growth Months -->
+                <div class="metric-card green-glow-border">
+                    <div class="metric-title">
+                        <span>Growth Periods</span>
+                        <div class="metric-icon-wrapper" style="color: var(--color-accent);"><i data-lucide="zap" style="width: 16px; height: 16px;"></i></div>
+                    </div>
+                    <div id="kpi-growth-periods" class="metric-value">2</div>
+                    <span class="filter-desc">Months with > 20% MoM rise</span>
+                </div>
+
+                <!-- KPI 3: Ending Volume (June 2026) -->
+                <div class="metric-card">
+                    <div class="metric-title">
+                        <span>Final Period Installs</span>
+                        <div class="metric-icon-wrapper"><i data-lucide="bar-chart-2" style="width: 16px; height: 16px;"></i></div>
+                    </div>
+                    <div id="kpi-ending-volume" class="metric-value">256M</div>
+                    <span class="filter-desc">Plotted total volume (June)</span>
+                </div>
+
+                <!-- KPI 4: Matching App Count -->
+                <div class="metric-card">
+                    <div class="metric-title">
+                        <span>Database Matches</span>
+                        <div class="metric-icon-wrapper"><i data-lucide="check-square" style="width: 16px; height: 16px;"></i></div>
+                    </div>
+                    <div id="kpi-matching-apps" class="metric-value">14 / 22</div>
+                    <span class="filter-desc">Apps satisfying all conditions</span>
+                </div>
+
+            </div>
+
+            <!-- Trend Line Chart -->
+            <div class="chart-container-card" id="chart-card">
+                
+                <div class="card-header">
+                    <div class="card-title">
+                        <i data-lucide="line-chart" style="width: 20px; height: 20px;"></i>
+                        <span>Dynamic Time Series Installations Trend</span>
+                    </div>
+                    <div class="filter-desc">Shaded vertical regions indicate aggregate growth MoM &gt; 20%</div>
+                </div>
+
+                <!-- Canvas -->
+                <div id="trend-line-chart-canvas" style="width: 100%; min-height: 380px;"></div>
+
+                <!-- Lock Screen -->
+                <div class="lock-overlay" id="lock-overlay">
+                    <div class="lock-icon-container">
+                        <i data-lucide="lock" style="width: 38px; height: 38px;"></i>
+                    </div>
+                    <div class="lock-title">Analytics Time Trend Locked</div>
+                    <div class="lock-message">
+                        This time series chart operates and displays analytical metrics only between the window of <strong>6:00 PM IST and 9:00 PM IST</strong> daily.
+                    </div>
+                    <div class="countdown-timer-box">
+                        <span id="countdown-clock">00:00:00</span>
+                        <span class="countdown-label" id="countdown-status-label">Until Next Operations Window</span>
+                    </div>
+                    <div class="filter-desc" style="max-width: 400px;">
+                        Use the <strong>Admin Time Override</strong> console in the sidebar to bypass this restriction for evaluation and testing.
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Monthly installs breakdown grid -->
+            <div class="table-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i data-lucide="list" style="width: 20px; height: 20px; color: var(--color-accent);"></i>
+                        <span>Installs & MoM Growth Audit Table</span>
+                    </div>
+                    <div class="filter-desc" id="audit-table-summary">Installs database audit</div>
+                </div>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Month</th>
+                                <th>Active Plotted Installs</th>
+                                <th>MoM Increase (M)</th>
+                                <th>MoM Growth Rate (%)</th>
+                                <th>Growth Highlight Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-table-body">
+                            <!-- Dynamically generated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+
+    </div>
+
+    <script>
+        // Comprehensive dataset of 22 apps with 6-month installs trends
+        const TREND_DATABASE = [
+            // ================= Whitelisted (Comes under E, C, B, names ok, reviews >500) =================
+            // Communication (C - whitelisted)
+            { name: "Viber", category: "Communication", reviews: 15000, installs: { "Jan": 10000000, "Feb": 11000000, "Mar": 14000000, "Apr": 15000000, "May": 19000000, "Jun": 20000000 } },
+            { name: "WeChat", category: "Communication", reviews: 2000, installs: { "Jan": 8000000, "Feb": 8500000, "Mar": 11000000, "Apr": 11500000, "May": 14000000, "Jun": 15000000 } },
+            
+            // Comics (C - whitelisted)
+            { name: "Webtoon", category: "Comics", reviews: 80000, installs: { "Jan": 12000000, "Feb": 13000000, "Mar": 16000000, "Apr": 17000000, "May": 22000000, "Jun": 24000000 } },
+            { name: "MangaToon", category: "Comics", reviews: 30000, installs: { "Jan": 6000000, "Feb": 6500000, "Mar": 8000000, "Apr": 8500000, "May": 11000000, "Jun": 12000000 } },
+
+            // Beauty (B - whitelisted, सौंदर्य)
+            { name: "Nykaa", category: "Beauty", reviews: 12000, installs: { "Jan": 5000000, "Feb": 5500000, "Mar": 7000000, "Apr": 7500000, "May": 9500000, "Jun": 10500000 } },
+            { name: "Lakme Pro", category: "Beauty", reviews: 2500, installs: { "Jan": 2000000, "Feb": 2200000, "Mar": 2800000, "Apr": 3000000, "May": 3800000, "Jun": 4000000 } },
+
+            // Business (B - whitelisted, வணிகம்)
+            { name: "Webex App", category: "Business", reviews: 5000, installs: { "Jan": 15000000, "Feb": 16000000, "Mar": 20000000, "Apr": 21000000, "May": 27000000, "Jun": 29000000 } },
+            { name: "Group Meeting", category: "Business", reviews: 120000, installs: { "Jan": 25000000, "Feb": 27000000, "Mar": 34000000, "Apr": 36000000, "May": 46000000, "Jun": 50000000 } },
+
+            // Entertainment (E - whitelisted)
+            { name: "Prime Video", category: "Entertainment", reviews: 90000, installs: { "Jan": 18000000, "Feb": 19500000, "Mar": 24000000, "Apr": 25500000, "May": 32000000, "Jun": 35000000 } },
+            { name: "Hulu", category: "Entertainment", reviews: 45000, installs: { "Jan": 9000000, "Feb": 10000000, "Mar": 12500000, "Apr": 13500000, "May": 17000000, "Jun": 18500000 } },
+            { name: "Tubi TV", category: "Entertainment", reviews: 35000, installs: { "Jan": 7000000, "Feb": 7500000, "Mar": 9500000, "Apr": 10000000, "May": 13000000, "Jun": 14000000 } },
+            { name: "Pluto TV", category: "Entertainment", reviews: 22000, installs: { "Jan": 5000000, "Feb": 5500000, "Mar": 7000000, "Apr": 7500000, "May": 9500000, "Jun": 10000000 } },
+
+            // Events (E - whitelisted)
+            { name: "Eventbrite", category: "Events", reviews: 8000, installs: { "Jan": 3000000, "Feb": 3200000, "Mar": 4000000, "Apr": 4200000, "May": 5500000, "Jun": 6000000 } },
+            { name: "Meetup", category: "Events", reviews: 11000, installs: { "Jan": 4000000, "Feb": 4300000, "Mar": 5500000, "Apr": 5800000, "May": 7500000, "Jun": 8000000 } },
+
+            // ================= EXCLUDED BY VARIOUS RULES =================
+            // Excluded by Category letter (D starts with D, which is not E, C, B)
+            { name: "Tinder", category: "Dating", reviews: 45000, installs: { "Jan": 20000000, "Feb": 21000000, "Mar": 23000000, "Apr": 24000000, "May": 25000000, "Jun": 26000000 } },
+            { name: "Bumble", category: "Dating", reviews: 28000, installs: { "Jan": 10000000, "Feb": 11000000, "Mar": 12000000, "Apr": 13000000, "May": 14000000, "Jun": 15000000 } },
+
+            // Excluded by App Name Z (Starts with Z)
+            { name: "Zoom", category: "Business", reviews: 140000, installs: { "Jan": 30000000, "Feb": 32000000, "Mar": 40000000, "Apr": 42000000, "May": 50000000, "Jun": 55000000 } },
+
+            // Excluded by App Name X (Starts with X)
+            { name: "X-Corp Mail", category: "Business", reviews: 3000, installs: { "Jan": 1000000, "Feb": 1200000, "Mar": 1500000, "Apr": 1600000, "May": 1800000, "Jun": 2000000 } },
+
+            // Excluded by App Name Y (Starts with Y)
+            { name: "Y-Chat", category: "Communication", reviews: 1500, installs: { "Jan": 2000000, "Feb": 2200000, "Mar": 2500000, "Apr": 2700000, "May": 3000000, "Jun": 3200000 } },
+
+            // Excluded because name contains letter "S" (case insensitive check)
+            { name: "Slack App", category: "Business", reviews: 50000, installs: { "Jan": 8000000, "Feb": 9000000, "Mar": 11000000, "Apr": 12000000, "May": 15000000, "Jun": 16000000 } },
+            { name: "Teams Room", category: "Business", reviews: 75000, installs: { "Jan": 20000000, "Feb": 21000000, "Mar": 24000000, "Apr": 25000000, "May": 30000000, "Jun": 32000000 } },
+
+            // Excluded because of low reviews (<= 500)
+            { name: "Comics Board", category: "Comics", reviews: 250, installs: { "Jan": 100000, "Feb": 120000, "Mar": 150000, "Apr": 160000, "May": 200000, "Jun": 220000 } }
+        ];
+
+        // Category Colors
+        const categoryColors = {
+            'सौंदर्य': '#a855f7',         // Beauty (Hindi)
+            'வணிகம்': '#06b6d4',          // Business (Tamil)
+            'Comics': '#eab308',          // Comics
+            'Communication': '#3b82f6',   // Communication
+            'Entertainment': '#d946ef',   // Entertainment
+            'Events': '#f97316',          // Events
+            'Partnersuche': '#ec4899'     // Dating (German - visible in bypass)
+        };
+
+        const categoryTranslations = {
+            'Beauty': 'सौंदर्य',
+            'Business': 'வணிகம்',
+            'Dating': 'Partnersuche',
+            'Comics': 'Comics',
+            'Communication': 'Communication',
+            'Entertainment': 'Entertainment',
+            'Events': 'Events'
+        };
+
+        // Standard categories whitelisted by starts-with letter "E", "C", "B" (case insensitive)
+        const WHITELIST_LETTERS = ['E', 'C', 'B'];
+
+        // Chronological months
+        const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+
+        // System states
+        let currentSimMode = 'real';
+        let chartInstance = null;
+
+        // Converter
+        function formatNumber(num) {
+            if (num >= 1000000000) return (num / 1000000000).toFixed(0) + 'B';
+            if (num >= 1000000) return (num / 1000000).toFixed(0) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(0) + 'k';
+            return num;
+        }
+
+        // Clock & locking
+        function getISTTime() {
+            const date = new Date();
+            const utcMs = date.getTime() + (date.getTimezoneOffset() * 60000);
+            const istOffsetMs = 5.5 * 60 * 60000;
+            const istDate = new Date(utcMs + istOffsetMs);
+            return istDate;
+        }
+
+        function updateClock() {
+            let activeDate;
+            if (currentSimMode === 'real') {
+                activeDate = getISTTime();
+            } else if (currentSimMode === 'active') {
+                // Simulate 7:30:00 PM IST
+                activeDate = new Date();
+                activeDate.setHours(19, 30, 0);
+            } else {
+                // Simulate 12:00:00 PM IST
+                activeDate = new Date();
+                activeDate.setHours(12, 0, 0);
+            }
+
+            const hrs = activeDate.getHours();
+            const mins = activeDate.getMinutes();
+            const secs = activeDate.getSeconds();
+            const ampm = hrs >= 12 ? 'PM' : 'AM';
+            const displayHrs = hrs % 12 || 12;
+            
+            const timeStr = `${String(displayHrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')} ${ampm}`;
+            document.getElementById('clock-display').innerText = timeStr + " IST";
+
+            // Locked window check: works only between 6 PM (18:00) and 9 PM (21:00) IST
+            const inRange = hrs >= 18 && hrs < 21;
+            const statusBadge = document.getElementById('status-badge');
+            const statusText = document.getElementById('status-text');
+            const lockOverlay = document.getElementById('lock-overlay');
+
+            if (inRange) {
+                statusBadge.className = 'status-dot active';
+                statusText.innerText = 'System Active (6 PM - 9 PM)';
+                statusText.style.color = '#10b981';
+
+                if (!lockOverlay.classList.contains('hidden')) {
+                    lockOverlay.classList.add('hidden');
+                }
+
+                if (!chartInstance) {
+                    renderChart();
+                }
+            } else {
+                statusBadge.className = 'status-dot restricted';
+                statusText.innerText = 'Outside Operations Window';
+                statusText.style.color = '#ef4444';
+
+                if (lockOverlay.classList.contains('hidden')) {
+                    lockOverlay.classList.remove('hidden');
+                }
+
+                // Countdown until 6 PM IST
+                let targetHrs = 18 - hrs;
+                let targetMins = 0 - mins;
+                let targetSecs = 0 - secs;
+
+                if (targetHrs < 0 || (targetHrs === 0 && targetMins < 0)) {
+                    targetHrs += 24;
+                }
+                if (targetSecs < 0) {
+                    targetSecs += 60;
+                    targetMins -= 1;
+                }
+                if (targetMins < 0) {
+                    targetMins += 60;
+                    targetHrs -= 1;
+                }
+
+                const countdownStr = `${String(targetHrs).padStart(2, '0')}:${String(targetMins).padStart(2, '0')}:${String(targetSecs).padStart(2, '0')}`;
+                document.getElementById('countdown-clock').innerText = countdownStr;
+                document.getElementById('countdown-status-label').innerText = "Until Next operations window (6:00 PM IST)";
+            }
+        }
+
+        // Filtering engine
+        function getFilteredData() {
+            const bypass = document.getElementById('bypass-filters-toggle').checked;
+            
+            return TREND_DATABASE.filter(app => {
+                if (bypass) return true;
+
+                // 1. App name should not start with x, y, z (case insensitive)
+                const startsWithXYZ = /^[xyz]/i.test(app.name.trim());
+                if (startsWithXYZ) return false;
+
+                // 2. App category should start with E, C, or B
+                const catFirstChar = app.category.trim().charAt(0).toUpperCase();
+                const categoryMatch = WHITELIST_LETTERS.includes(catFirstChar);
+                if (!categoryMatch) return false;
+
+                // 3. Reviews > 500
+                if (app.reviews <= 500) return false;
+
+                // 4. App name should not contain letter "S" (case-insensitive)
+                const nameHasS = app.name.toLowerCase().includes('s');
+                if (nameHasS) return false;
+
+                return true;
+            });
+        }
+
+        // Process data for chart & UI metrics
+        function processDashboardUI() {
+            const filteredApps = getFilteredData();
+            
+            // Plotted categories
+            const plottedCats = [...new Set(filteredApps.map(app => app.category))];
+            
+            // Map categories translations
+            const translatedPlottedCats = plottedCats.map(cat => categoryTranslations[cat] || cat);
+            document.getElementById('kpi-plotted-categories').innerText = translatedPlottedCats.length;
+
+            // Math installs sums by month
+            const monthlyAggregate = {};
+            MONTHS.forEach(m => {
+                monthlyAggregate[m] = 0;
+            });
+
+            filteredApps.forEach(app => {
+                MONTHS.forEach(m => {
+                    monthlyAggregate[m] += app.installs[m] || 0;
+                });
+            });
+
+            // Update KPI ending volume (June)
+            document.getElementById('kpi-ending-volume').innerText = formatNumber(monthlyAggregate['Jun']);
+
+            // Compute MoM Growth percentages and detect > 20% growth intervals
+            const growthPercentages = {};
+            let highGrowthCount = 0;
+
+            for (let i = 1; i < MONTHS.length; i++) {
+                const prev = MONTHS[i-1];
+                const curr = MONTHS[i];
+                const prevVal = monthlyAggregate[prev];
+                const currVal = monthlyAggregate[curr];
+
+                if (prevVal > 0) {
+                    const diff = currVal - prevVal;
+                    const pct = (diff / prevVal) * 100;
+                    growthPercentages[curr] = pct;
+
+                    if (pct > 20) {
+                        highGrowthCount++;
+                    }
+                } else {
+                    growthPercentages[curr] = 0;
+                }
+            }
+
+            document.getElementById('kpi-growth-periods').innerText = highGrowthCount;
+            document.getElementById('kpi-matching-apps').innerText = `${filteredApps.length} / ${TREND_DATABASE.length}`;
+
+            // Build Audit Table
+            const tbody = document.getElementById('audit-table-body');
+            tbody.innerHTML = '';
+
+            MONTHS.forEach((m, idx) => {
+                const tr = document.createElement('tr');
+                const volume = monthlyAggregate[m];
+                
+                let diffText = '-';
+                let rateText = '-';
+                let highlightBadge = '<span class="growth-badge standard">Steady</span>';
+
+                if (idx > 0) {
+                    const prevVol = monthlyAggregate[MONTHS[idx-1]];
+                    const diff = volume - prevVol;
+                    const pct = growthPercentages[m];
+
+                    diffText = (diff >= 0 ? '+' : '') + formatNumber(diff);
+                    rateText = pct.toFixed(1) + '%';
+
+                    if (pct > 20) {
+                        highlightBadge = `<span class="growth-badge high"><i data-lucide="trending-up" style="width:12px; height:12px; margin-right:4px;"></i>&gt; 20% Growth</span>`;
+                    }
+                } else {
+                    highlightBadge = `<span class="growth-badge standard">Baseline</span>`;
+                }
+
+                tr.innerHTML = `
+                    <td style="font-weight: 700; color: var(--color-accent);">${getMonthFullName(m)} 2026</td>
+                    <td style="font-weight: 700; color: #ffffff;">${volume.toLocaleString()}</td>
+                    <td>${diffText}</td>
+                    <td style="font-family: monospace; font-weight: 600; color: ${idx > 0 && growthPercentages[m] > 20 ? 'var(--color-accent)' : '#d1d5db'};">${rateText}</td>
+                    <td>${highlightBadge}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            lucide.createIcons();
+
+            // Re-render ApexCharts dynamically
+            if (chartInstance) {
+                updateChartSeries(filteredApps, monthlyAggregate, growthPercentages);
+            }
+        }
+
+        function getMonthFullName(m) {
+            const map = { 'Jan': 'January', 'Feb': 'February', 'Mar': 'March', 'Apr': 'April', 'May': 'May', 'Jun': 'June' };
+            return map[m] || m;
+        }
+
+        // Chart render options
+        function renderChart() {
+            const container = document.getElementById('trend-line-chart-canvas');
+            if (!container) return;
+
+            const filteredApps = getFilteredData();
+
+            // Group installations monthly by category
+            const categoryMonthly = {};
+            filteredApps.forEach(app => {
+                const transCat = categoryTranslations[app.category] || app.category;
+                if (!categoryMonthly[transCat]) {
+                    categoryMonthly[transCat] = {};
+                    MONTHS.forEach(m => categoryMonthly[transCat][m] = 0);
+                }
+                MONTHS.forEach(m => {
+                    categoryMonthly[transCat][m] += app.installs[m] || 0;
+                });
+            });
+
+            // Series construction
+            const seriesArray = Object.keys(categoryMonthly).map(catName => {
+                return {
+                    name: catName,
+                    data: MONTHS.map(m => categoryMonthly[catName][m])
+                };
+            });
+
+            const colorsArray = seriesArray.map(s => categoryColors[s.name] || '#888888');
+
+            // Calculation of growth shaded annotations dynamically
+            const annotationsX = [];
+            const monthlyAggregate = {};
+            MONTHS.forEach(m => {
+                monthlyAggregate[m] = 0;
+                filteredApps.forEach(app => {
+                    monthlyAggregate[m] += app.installs[m] || 0;
+                });
+            });
+
+            for (let i = 1; i < MONTHS.length; i++) {
+                const prev = MONTHS[i-1];
+                const curr = MONTHS[i];
+                const prevVal = monthlyAggregate[prev];
+                const currVal = monthlyAggregate[curr];
+                if (prevVal > 0) {
+                    const pct = ((currVal - prevVal) / prevVal) * 100;
+                    if (pct > 20) {
+                        annotationsX.push({
+                            x: prev,
+                            x2: curr,
+                            fillColor: '#10b981',
+                            opacity: 0.1,
+                            borderColor: 'transparent',
+                            label: {
+                                borderColor: '#10b981',
+                                style: {
+                                    color: '#fff',
+                                    background: '#10b981',
+                                    fontSize: '9px',
+                                    fontWeight: 700
+                                },
+                                text: `MoM Growth: +${pct.toFixed(1)}%`
+                            }
+                        });
+                    }
+                }
+            }
+
+            const options = {
+                series: seriesArray,
+                chart: {
+                    type: 'line',
+                    height: 380,
+                    background: 'transparent',
+                    foreColor: '#9ca3af',
+                    toolbar: {
+                        show: true
+                    },
+                    animations: {
+                        enabled: true,
+                        speed: 600
+                    }
+                },
+                colors: colorsArray,
+                stroke: {
+                    curve: 'smooth',
+                    width: 3.5
+                },
+                markers: {
+                    size: 5,
+                    hover: {
+                        size: 8
+                    }
+                },
+                xaxis: {
+                    categories: MONTHS,
+                    type: 'category',
+                    title: {
+                        text: 'Analytical Calendar Months (2026)',
+                        style: { color: '#9ca3af', fontSize: '11px', fontWeight: 600 }
+                    },
+                    axisBorder: { color: 'rgba(255, 255, 255, 0.08)' },
+                    axisTicks: { color: 'rgba(255, 255, 255, 0.08)' }
+                },
+                yaxis: {
+                    title: {
+                        text: 'Plotted Installations Sum',
+                        style: { color: '#9ca3af', fontSize: '11px', fontWeight: 600 }
+                    },
+                    labels: {
+                        formatter: function(val) {
+                            return formatNumber(val);
+                        }
+                    }
+                },
+                grid: {
+                    borderColor: 'rgba(255, 255, 255, 0.05)',
+                    strokeDashArray: 4
+                },
+                annotations: {
+                    xaxis: annotationsX
+                },
+                tooltip: {
+                    shared: true,
+                    intersect: false,
+                    theme: 'dark',
+                    y: {
+                        formatter: function(val) {
+                            return val.toLocaleString() + ' Installs';
+                        }
+                    }
+                },
+                legend: {
+                    position: 'bottom',
+                    fontFamily: 'Plus Jakarta Sans',
+                    fontSize: '11px'
+                }
+            };
+
+            chartInstance = new ApexCharts(container, options);
+            chartInstance.render();
+        }
+
+        // Dynamically update the series data & growth shading annotations
+        function updateChartSeries(filteredApps, monthlyAggregate, growthPercentages) {
+            const categoryMonthly = {};
+            filteredApps.forEach(app => {
+                const transCat = categoryTranslations[app.category] || app.category;
+                if (!categoryMonthly[transCat]) {
+                    categoryMonthly[transCat] = {};
+                    MONTHS.forEach(m => categoryMonthly[transCat][m] = 0);
+                }
+                MONTHS.forEach(m => {
+                    categoryMonthly[transCat][m] += app.installs[m] || 0;
+                });
+            });
+
+            const seriesArray = Object.keys(categoryMonthly).map(catName => {
+                return {
+                    name: catName,
+                    data: MONTHS.map(m => categoryMonthly[catName][m])
+                };
+            });
+
+            const colorsArray = seriesArray.map(s => categoryColors[s.name] || '#888888');
+
+            // Re-calculate growth shading annotations
+            const annotationsX = [];
+            for (let i = 1; i < MONTHS.length; i++) {
+                const prev = MONTHS[i-1];
+                const curr = MONTHS[i];
+                const pct = growthPercentages[curr] || 0;
+                if (pct > 20) {
+                    annotationsX.push({
+                        x: prev,
+                        x2: curr,
+                        fillColor: '#10b981',
+                        opacity: 0.1,
+                        borderColor: 'transparent',
+                        label: {
+                            borderColor: '#10b981',
+                            style: {
+                                color: '#fff',
+                                background: '#10b981',
+                                fontSize: '9px',
+                                fontWeight: 700
+                            },
+                            text: `MoM Growth: +${pct.toFixed(1)}%`
+                        }
+                    });
+                }
+            }
+
+            chartInstance.updateOptions({
+                colors: colorsArray,
+                annotations: {
+                    xaxis: annotationsX
+                }
+            }, false, true);
+
+            chartInstance.updateSeries(seriesArray);
+        }
+
+        // DOM Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+
+            // Real clock setup
+            setInterval(updateClock, 1000);
+            updateClock();
+
+            // Run initial database load
+            processDashboardUI();
+
+            // Listeners
+            document.getElementById('bypass-filters-toggle').addEventListener('change', () => {
+                processDashboardUI();
+            });
+
+            // Time simulated console
+            const btnReal = document.getElementById('sim-btn-real');
+            const btnActive = document.getElementById('sim-btn-active');
+            const btnRestricted = document.getElementById('sim-btn-restricted');
+
+            function clearSimBtnActive() {
+                btnReal.classList.remove('active');
+                btnActive.classList.remove('active');
+                btnRestricted.classList.remove('active');
+            }
+
+            btnReal.addEventListener('click', () => {
+                clearSimBtnActive();
+                btnReal.classList.add('active');
+                currentSimMode = 'real';
+                updateClock();
+            });
+
+            btnActive.addEventListener('click', () => {
+                clearSimBtnActive();
+                btnActive.classList.add('active');
+                currentSimMode = 'active';
+                updateClock();
+            });
+
+            btnRestricted.addEventListener('click', () => {
+                clearSimBtnActive();
+                btnRestricted.classList.add('active');
+                currentSimMode = 'restricted';
+                updateClock();
+            });
+        });
+    </script>
+</body>
+</html>

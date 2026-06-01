@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Installs Map Dashboard - Plotly Choropleth</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+
+    <style>
+        :root {
+            --bg-base: #08080c;
+            --bg-surface: rgba(18, 18, 26, 0.65);
+            --bg-card: rgba(25, 25, 35, 0.45);
+            --border-glow: rgba(249, 115, 22, 0.15); /* Orange/Gold accent */
+            --border-subtle: rgba(255, 255, 255, 0.05);
+            
+            --color-text-main: #f3f4f6;
+            --color-text-muted: #9ca3af;
+            
+            --color-accent: #f97316; /* Theme Accent: Orange/Gold */
+            --color-pink-game: #FF2A85;
+            --color-gold: #ffd700;
+            
+            --font-family: 'Plus Jakarta Sans', sans-serif;
+            
+            --shadow-glow: 0 0 20px rgba(249, 115, 22, 0.15);
+            --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-base);
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(249, 115, 22, 0.06) 0%, transparent 45%),
+                radial-gradient(circle at 85% 85%, rgba(255, 42, 133, 0.04) 0%, transparent 45%);
+            background-attachment: fixed;
+            color: var(--color-text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Dashboard Layout Grid */
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            background: rgba(10, 10, 15, 0.9);
+            border-right: 1px solid var(--border-subtle);
+            backdrop-filter: blur(20px);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            z-index: 10;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .logo-section i {
+            color: var(--color-accent);
+            filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.6));
+        }
+
+        .logo-title {
+            font-size: 1.15rem;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            background: linear-gradient(to right, #ffffff, #9ca3af);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .section-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--color-text-muted);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        /* Time machine panel */
+        .time-machine-panel {
+            background: rgba(255, 255, 255, 0.015);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .time-status {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        .status-dot.active {
+            color: #10b981;
+            background-color: #10b981;
+        }
+
+        .status-dot.restricted {
+            color: #ef4444;
+            background-color: #ef4444;
+        }
+
+        .ist-clock {
+            font-size: 1.25rem;
+            font-weight: 700;
+            font-family: monospace;
+            color: #ffffff;
+            margin-top: 4px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+        }
+
+        .simulation-mode-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            margin-top: 6px;
+        }
+
+        .sim-btn-group {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 6px;
+        }
+
+        .sim-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: var(--color-text-muted);
+            font-size: 0.75rem;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sim-btn:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: #ffffff;
+        }
+
+        .sim-btn.active {
+            background: rgba(249, 115, 22, 0.15);
+            border-color: var(--color-accent);
+            color: #ffffff;
+            font-weight: 600;
+            box-shadow: 0 0 10px rgba(249, 115, 22, 0.15);
+        }
+
+        /* Filter Controls */
+        .filter-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .filter-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .filter-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .filter-value {
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: var(--color-accent);
+        }
+
+        .filter-desc {
+            font-size: 0.7rem;
+            color: var(--color-text-muted);
+            line-height: 1.3;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 36px;
+            height: 20px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.08);
+            transition: .3s;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 2px;
+            bottom: 2px;
+            background-color: #ffffff;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--color-accent);
+            box-shadow: 0 0 8px rgba(249, 115, 22, 0.4);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(16px);
+        }
+
+        .filter-badge-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .filter-badge {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            color: #d1d5db;
+        }
+
+        /* Main Workspace Area */
+        .main-workspace {
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+
+        /* Header Row */
+        .workspace-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header-title-block h1 {
+            font-size: 1.75rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff 30%, #a1a1aa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .header-title-block p {
+            font-size: 0.875rem;
+            color: var(--color-text-muted);
+            margin-top: 4px;
+        }
+
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .metric-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.1);
+            background: rgba(25, 25, 35, 0.6);
+            box-shadow: var(--shadow-glass);
+        }
+
+        .metric-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .metric-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+        }
+
+        .metric-icon-wrapper {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--color-text-muted);
+        }
+
+        .metric-card:hover .metric-icon-wrapper {
+            background: rgba(249, 115, 22, 0.1);
+            color: var(--color-accent);
+        }
+
+        /* Map Panel Container */
+        .map-container-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 24px;
+            backdrop-filter: blur(12px);
+            box-shadow: var(--shadow-glass);
+            min-height: 520px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 16px;
+            gap: 16px;
+        }
+
+        @media (max-width: 640px) {
+            .card-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title i {
+            color: var(--color-accent);
+        }
+
+        /* Dropdown Control */
+        .category-selector-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .category-selector-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--color-text-muted);
+        }
+
+        .category-select {
+            background: rgba(20, 20, 30, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #ffffff;
+            padding: 8px 36px 8px 12px;
+            font-family: var(--font-family);
+            outline: none;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml;utf8,<svg fill='white' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+        }
+
+        .category-select:hover {
+            border-color: var(--color-accent);
+            background-color: rgba(30, 30, 45, 0.95);
+            box-shadow: 0 0 8px rgba(249, 115, 22, 0.1);
+        }
+
+        /* Map Canvas */
+        #plotly-map-canvas {
+            width: 100%;
+            height: 400px;
+        }
+
+        /* Locked Screen Overlay */
+        .lock-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(8, 8, 12, 0.9);
+            backdrop-filter: blur(20px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            text-align: center;
+            padding: 32px;
+            gap: 20px;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+        }
+
+        .lock-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .lock-icon-container {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 30px rgba(239, 68, 68, 0.15);
+            animation: pulse-red 2s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .lock-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #ffffff;
+        }
+
+        .lock-message {
+            max-width: 480px;
+            font-size: 0.95rem;
+            color: var(--color-text-muted);
+            line-height: 1.6;
+        }
+
+        .countdown-timer-box {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 16px 28px;
+            font-family: monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-accent);
+            letter-spacing: 1px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .countdown-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--color-text-muted);
+            font-family: var(--font-family);
+        }
+
+        /* Table Area */
+        .table-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 24px;
+            backdrop-filter: blur(12px);
+            box-shadow: var(--shadow-glass);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.85rem;
+        }
+
+        th {
+            padding: 12px 16px;
+            color: var(--color-text-muted);
+            font-weight: 600;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: #d1d5db;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.015);
+            color: #ffffff;
+        }
+
+        .status-badge-ui {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .status-badge-ui.highlight {
+            background: rgba(249, 115, 22, 0.12);
+            border: 1px solid rgba(249, 115, 22, 0.3);
+            color: var(--color-accent);
+            box-shadow: 0 0 10px rgba(249, 115, 22, 0.08);
+        }
+
+        .status-badge-ui.standard {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--color-text-muted);
+        }
+
+        .orange-glow-border {
+            border: 1px solid rgba(249, 115, 22, 0.3) !important;
+            box-shadow: 0 0 15px rgba(249, 115, 22, 0.08) !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        
+        <!-- Sidebar Controls -->
+        <aside class="sidebar">
+            
+            <!-- Logo Section -->
+            <div class="logo-section">
+                <i data-lucide="globe" style="width: 28px; height: 28px;"></i>
+                <span class="logo-title">GlobalInstalls</span>
+            </div>
+
+            <!-- Time Display / Status -->
+            <div class="time-machine-panel">
+                <div class="time-status">
+                    <span class="section-title" style="margin: 0;">IST Clock</span>
+                    <span id="status-badge" class="status-dot restricted"></span>
+                </div>
+                <div id="clock-display" class="ist-clock">12:00:00 PM</div>
+                <div id="status-text" class="filter-desc" style="color: var(--color-accent); font-weight: 600;">System Locked</div>
+                
+                <div class="simulation-mode-title">Admin Time Override</div>
+                <div class="sim-btn-group">
+                    <button class="sim-btn active" id="sim-btn-real">
+                        <span>Real System Time</span>
+                        <i data-lucide="clock" style="width: 12px; height: 12px;"></i>
+                    </button>
+                    <button class="sim-btn" id="sim-btn-active">
+                        <span>Simulate 7:00 PM IST (Active)</span>
+                        <i data-lucide="unlock" style="width: 12px; height: 12px;"></i>
+                    </button>
+                    <button class="sim-btn" id="sim-btn-restricted">
+                        <span>Simulate 12:00 PM IST (Locked)</span>
+                        <i data-lucide="lock" style="width: 12px; height: 12px;"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Required Constraints -->
+            <div>
+                <h3 class="section-title">Required Constraints</h3>
+                <div class="filter-controls">
+                    
+                    <!-- Time Frame -->
+                    <div class="filter-item">
+                        <div class="filter-label">
+                            <span>Operations Hours</span>
+                            <span class="filter-value">Active</span>
+                        </div>
+                        <span class="filter-desc">Graph works only between 6 PM IST and 8 PM IST.</span>
+                    </div>
+
+                    <!-- Category Exclusion Rules -->
+                    <div class="filter-item">
+                        <div class="filter-label">
+                            <span>Prefix Exclusions</span>
+                            <span class="filter-value">A, C, G, S</span>
+                        </div>
+                        <span class="filter-desc">Exclude categories starting with 'A', 'C', 'G', or 'S'. (e.g. Games, Social, Comics are blocked)</span>
+                    </div>
+
+                    <!-- Top 5 Categories Limit -->
+                    <div class="filter-item">
+                        <div class="filter-label">
+                            <span>Ranking Scope</span>
+                            <span class="filter-value">Top 5 Only</span>
+                        </div>
+                        <span class="filter-desc">Filter data to include only the top 5 whitelisted categories by global installs.</span>
+                    </div>
+
+                    <!-- Highlight Limit -->
+                    <div class="filter-item">
+                        <div class="filter-label">
+                            <span>Volume Highlight</span>
+                            <span class="filter-value">&gt; 1M Installs</span>
+                        </div>
+                        <span class="filter-desc">Highlight countries where installations exceed 1 million in the active category.</span>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Bypass Switch -->
+            <div style="margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border-subtle);">
+                <div class="filter-item">
+                    <div class="filter-label">
+                        <span>Bypass Filters</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="bypass-filters-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <span class="filter-desc">Disable exclusion and ranking filters to show all categories.</span>
+                </div>
+            </div>
+
+        </aside>
+
+        <!-- Main Workspace Area -->
+        <main class="main-workspace">
+            
+            <!-- Workspace Header -->
+            <div class="workspace-header">
+                <div class="header-title-block">
+                    <h1>Choropleth Installations Map</h1>
+                    <p>Visualizing global installation volumes by whitelisted categories and geographic regions</p>
+                </div>
+                <div class="filter-badge" style="background: rgba(249, 115, 22, 0.1); border-color: rgba(249, 115, 22, 0.2); font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="shield-check" style="width: 14px; height: 14px; color: var(--color-accent);"></i>
+                    <span>IST 6 PM - 8 PM Lock Active</span>
+                </div>
+            </div>
+
+            <!-- KPI Row -->
+            <div class="metrics-grid">
+                
+                <!-- KPI 1: Whitelisted Categories -->
+                <div class="metric-card">
+                    <div class="metric-title">
+                        <span>Whitelisted Classes</span>
+                        <div class="metric-icon-wrapper"><i data-lucide="check-square" style="width: 16px; height: 16px;"></i></div>
+                    </div>
+                    <div id="kpi-whitelisted-count" class="metric-value">6</div>
+                    <span class="filter-desc">Classes passing name prefix check</span>
+                </div>
+
+                <!-- KPI 2: Top Plotted Scope -->
+                <div class="metric-card orange-glow-border">
+                    <div class="metric-title">
+                        <span>Plotted Categories</span>
+                        <div class="metric-icon-wrapper" style="color: var(--color-accent);"><i data-lucide="award" style="width: 16px; height: 16px;"></i></div>
+                    </div>
+                    <div id="kpi-plotted-count" class="metric-value">5</div>
+                    <span class="filter-desc">Top 5 categories by installs</span>
+                </div>
+
+                <!-- KPI 3: Total Global Installs -->
+                <div class="metric-card">
+                    <div class="metric-title">
+                        <span>Global Installs (Plotted)</span>
+                        <div class="metric-icon-wrapper"><i data-lucide="download-cloud" style="width: 16px; height: 16px;"></i></div>
+                    </div>
+                    <div id="kpi-total-installs" class="metric-value">456M</div>
+                    <span class="filter-desc">Aggregate install volume</span>
+                </div>
+
+                <!-- KPI 4: Highlighted Regions -->
+                <div class="metric-card">
+                    <div class="metric-title">
+                        <span>Highlighted Countries</span>
+                        <div class="metric-icon-wrapper"><i data-lucide="map-pin" style="width: 16px; height: 16px;"></i></div>
+                    </div>
+                    <div id="kpi-highlighted-count" class="metric-value">8</div>
+                    <span class="filter-desc">Regions with > 1M installs</span>
+                </div>
+
+            </div>
+
+            <!-- Map Visualization Card -->
+            <div class="map-container-card" id="map-card">
+                
+                <div class="card-header">
+                    <div class="card-title">
+                        <i data-lucide="map" style="width: 20px; height: 20px;"></i>
+                        <span>Geographical Installation Coverage</span>
+                    </div>
+                    
+                    <div class="category-selector-wrapper">
+                        <span class="category-selector-label">Select Category:</span>
+                        <select id="category-dropdown" class="category-select">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Plotly Map -->
+                <div id="plotly-map-canvas"></div>
+
+                <!-- Lock Screen Overlay -->
+                <div class="lock-overlay" id="lock-overlay">
+                    <div class="lock-icon-container">
+                        <i data-lucide="lock" style="width: 38px; height: 38px;"></i>
+                    </div>
+                    <div class="lock-title">Global Installations Map Locked</div>
+                    <div class="lock-message">
+                        This geographical visualization is configured to execute and display data metrics only between the window of <strong>6:00 PM IST and 8:00 PM IST</strong> daily.
+                    </div>
+                    <div class="countdown-timer-box">
+                        <span id="countdown-clock">00:00:00</span>
+                        <span class="countdown-label" id="countdown-status-label">Until Next Unlock</span>
+                    </div>
+                    <div class="filter-desc" style="max-width: 400px;">
+                        Use the <strong>Admin Time Override</strong> console in the sidebar to bypass this restriction for evaluation and testing.
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Data Table Auditing Panel -->
+            <div class="table-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i data-lucide="list" style="width: 20px; height: 20px; color: var(--color-accent);"></i>
+                        <span>Data Audit Table</span>
+                    </div>
+                    <div class="filter-desc" id="audit-table-summary">Installs database audit</div>
+                </div>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Country Code</th>
+                                <th>Country Name</th>
+                                <th>Category</th>
+                                <th>Install Volume</th>
+                                <th>Highlight Status (>1M)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-table-body">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+
+    </div>
+
+    <script>
+        // Global dataset of installs by category in different countries
+        const INSTALL_DATABASE = [
+            // ================= Whitelisted (Standard Name prefixes) =================
+            // Tools (T - whitelisted)
+            { countryCode: "USA", countryName: "United States", category: "Tools", installs: 35000000 },
+            { countryCode: "IND", countryName: "India", category: "Tools", installs: 50000000 },
+            { countryCode: "DEU", countryName: "Germany", category: "Tools", installs: 12000000 },
+            { countryCode: "BRA", countryName: "Brazil", category: "Tools", installs: 18000000 },
+            { countryCode: "GBR", countryName: "United Kingdom", category: "Tools", installs: 10000000 },
+            { countryCode: "JPN", countryName: "Japan", category: "Tools", installs: 15000000 },
+            { countryCode: "CAN", countryName: "Canada", category: "Tools", installs: 9000000 },
+            { countryCode: "AUS", countryName: "Australia", category: "Tools", installs: 6000000 },
+            { countryCode: "FRA", countryName: "France", category: "Tools", installs: 11000000 },
+            { countryCode: "ZAF", countryName: "South Africa", category: "Tools", installs: 4000000 },
+            
+            // Entertainment (E - whitelisted)
+            { countryCode: "USA", countryName: "United States", category: "Entertainment", installs: 28000000 },
+            { countryCode: "IND", countryName: "India", category: "Entertainment", installs: 42000000 },
+            { countryCode: "DEU", countryName: "Germany", category: "Entertainment", installs: 10000000 },
+            { countryCode: "BRA", countryName: "Brazil", category: "Entertainment", installs: 15000000 },
+            { countryCode: "GBR", countryName: "United Kingdom", category: "Entertainment", installs: 9000000 },
+            { countryCode: "JPN", countryName: "Japan", category: "Entertainment", installs: 13000000 },
+            { countryCode: "CAN", countryName: "Canada", category: "Entertainment", installs: 8000000 },
+            { countryCode: "AUS", countryName: "Australia", category: "Entertainment", installs: 5000000 },
+            { countryCode: "FRA", countryName: "France", category: "Entertainment", installs: 9500000 },
+            { countryCode: "ZAF", countryName: "South Africa", category: "Entertainment", installs: 3500000 },
+
+            // Productivity (P - whitelisted)
+            { countryCode: "USA", countryName: "United States", category: "Productivity", installs: 20000000 },
+            { countryCode: "IND", countryName: "India", category: "Productivity", installs: 30000000 },
+            { countryCode: "DEU", countryName: "Germany", category: "Productivity", installs: 8000000 },
+            { countryCode: "BRA", countryName: "Brazil", category: "Productivity", installs: 12000000 },
+            { countryCode: "GBR", countryName: "United Kingdom", category: "Productivity", installs: 7000000 },
+            { countryCode: "JPN", countryName: "Japan", category: "Productivity", installs: 9000000 },
+            { countryCode: "CAN", countryName: "Canada", category: "Productivity", installs: 6000000 },
+            { countryCode: "AUS", countryName: "Australia", category: "Productivity", installs: 4000000 },
+            { countryCode: "FRA", countryName: "France", category: "Productivity", installs: 7500000 },
+            { countryCode: "ZAF", countryName: "South Africa", category: "Productivity", installs: 2500000 },
+
+            // Finance (F - whitelisted)
+            { countryCode: "USA", countryName: "United States", category: "Finance", installs: 12000000 },
+            { countryCode: "IND", countryName: "India", category: "Finance", installs: 22000000 },
+            { countryCode: "DEU", countryName: "Germany", category: "Finance", installs: 6000000 },
+            { countryCode: "BRA", countryName: "Brazil", category: "Finance", installs: 8000000 },
+            { countryCode: "GBR", countryName: "United Kingdom", category: "Finance", installs: 4500000 },
+            { countryCode: "JPN", countryName: "Japan", category: "Finance", installs: 7500000 },
+            { countryCode: "CAN", countryName: "Canada", category: "Finance", installs: 4000000 },
+            { countryCode: "AUS", countryName: "Australia", category: "Finance", installs: 2500000 },
+            { countryCode: "FRA", countryName: "France", category: "Finance", installs: 5000000 },
+            { countryCode: "ZAF", countryName: "South Africa", category: "Finance", installs: 1800000 },
+
+            // Dating (D - whitelisted)
+            { countryCode: "USA", countryName: "United States", category: "Dating", installs: 8000000 },
+            { countryCode: "IND", countryName: "India", category: "Dating", installs: 500000 }, // < 1M (Not highlighted)
+            { countryCode: "DEU", countryName: "Germany", category: "Dating", installs: 3000000 },
+            { countryCode: "BRA", countryName: "Brazil", category: "Dating", installs: 2500000 },
+            { countryCode: "GBR", countryName: "United Kingdom", category: "Dating", installs: 2200000 },
+            { countryCode: "JPN", countryName: "Japan", category: "Dating", installs: 800000 },   // < 1M (Not highlighted)
+            { countryCode: "CAN", countryName: "Canada", category: "Dating", installs: 1500000 },
+            { countryCode: "AUS", countryName: "Australia", category: "Dating", installs: 1200000 },
+            { countryCode: "FRA", countryName: "France", category: "Dating", installs: 1800000 },
+            { countryCode: "ZAF", countryName: "South Africa", category: "Dating", installs: 400000 }, // < 1M (Not highlighted)
+
+            // Business (B - whitelisted but 6th place, so dynamically excluded unless filter is bypassed)
+            { countryCode: "USA", countryName: "United States", category: "Business", installs: 6000000 },
+            { countryCode: "IND", countryName: "India", category: "Business", installs: 12000000 },
+            { countryCode: "DEU", countryName: "Germany", category: "Business", installs: 2000000 },
+            { countryCode: "BRA", countryName: "Brazil", category: "Business", installs: 1500000 },
+
+            // ================= Non-Whitelisted (Prefixes starting with A, C, G, S) =================
+            // Auto & Vehicles (A - Excluded)
+            { countryCode: "USA", countryName: "United States", category: "Auto & Vehicles", installs: 15000000 },
+            { countryCode: "IND", countryName: "India", category: "Auto & Vehicles", installs: 25000000 },
+            
+            // Comics (C - Excluded)
+            { countryCode: "USA", countryName: "United States", category: "Comics", installs: 8000000 },
+            { countryCode: "JPN", countryName: "Japan", category: "Comics", installs: 35000000 },
+
+            // Game (G - Excluded)
+            { countryCode: "USA", countryName: "United States", category: "Games", installs: 150000000 },
+            { countryCode: "IND", countryName: "India", category: "Games", installs: 220000000 },
+            { countryCode: "DEU", countryName: "Germany", category: "Games", installs: 70000000 },
+            { countryCode: "BRA", countryName: "Brazil", category: "Games", installs: 90000000 },
+
+            // Social (S - Excluded)
+            { countryCode: "USA", countryName: "United States", category: "Social", installs: 95000000 },
+            { countryCode: "IND", countryName: "India", category: "Social", installs: 180000000 },
+            { countryCode: "DEU", countryName: "Germany", category: "Social", installs: 35000000 },
+            { countryCode: "GBR", countryName: "United Kingdom", category: "Social", installs: 30000000 }
+        ];
+
+        // System states
+        let currentSimMode = 'real';
+        let isMapInitialized = false;
+
+        // Number formatter
+        function formatNumber(num) {
+            if (num >= 1000000000) return (num / 1000000000).toFixed(0) + 'B';
+            if (num >= 1000000) return (num / 1000000).toFixed(0) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(0) + 'k';
+            return num;
+        }
+
+        // IST Clock and locking logic
+        function getISTTime() {
+            const date = new Date();
+            const utcMs = date.getTime() + (date.getTimezoneOffset() * 60000);
+            const istOffsetMs = 5.5 * 60 * 60000;
+            const istDate = new Date(utcMs + istOffsetMs);
+            return istDate;
+        }
+
+        function updateClock() {
+            let activeDate;
+            if (currentSimMode === 'real') {
+                activeDate = getISTTime();
+            } else if (currentSimMode === 'active') {
+                // Simulate 7:00 PM IST
+                activeDate = new Date();
+                activeDate.setHours(19, 0, 0);
+            } else {
+                // Simulate 12:00 PM IST
+                activeDate = new Date();
+                activeDate.setHours(12, 0, 0);
+            }
+
+            const hrs = activeDate.getHours();
+            const mins = activeDate.getMinutes();
+            const secs = activeDate.getSeconds();
+            const ampm = hrs >= 12 ? 'PM' : 'AM';
+            const displayHrs = hrs % 12 || 12;
+            
+            const timeStr = `${String(displayHrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')} ${ampm}`;
+            document.getElementById('clock-display').innerText = timeStr + " IST";
+
+            // Restricted check: works only between 6 PM (18:00) and 8 PM (20:00) IST
+            const inRange = hrs >= 18 && hrs < 20;
+            const statusBadge = document.getElementById('status-badge');
+            const statusText = document.getElementById('status-text');
+            const lockOverlay = document.getElementById('lock-overlay');
+
+            if (inRange) {
+                statusBadge.className = 'status-dot active';
+                statusText.innerText = 'System Active (6 PM - 8 PM)';
+                statusText.style.color = '#10b981';
+
+                if (!lockOverlay.classList.contains('hidden')) {
+                    lockOverlay.classList.add('hidden');
+                }
+
+                if (!isMapInitialized) {
+                    processDataAndRender();
+                    isMapInitialized = true;
+                }
+            } else {
+                statusBadge.className = 'status-dot restricted';
+                statusText.innerText = 'Outside Operating Window';
+                statusText.style.color = '#ef4444';
+
+                if (lockOverlay.classList.contains('hidden')) {
+                    lockOverlay.classList.remove('hidden');
+                }
+
+                // Compute countdown until 6 PM IST
+                let targetHrs = 18 - hrs;
+                let targetMins = 0 - mins;
+                let targetSecs = 0 - secs;
+
+                if (targetHrs < 0 || (targetHrs === 0 && targetMins < 0)) {
+                    targetHrs += 24;
+                }
+                if (targetSecs < 0) {
+                    targetSecs += 60;
+                    targetMins -= 1;
+                }
+                if (targetMins < 0) {
+                    targetMins += 60;
+                    targetHrs -= 1;
+                }
+
+                const countdownStr = `${String(targetHrs).padStart(2, '0')}:${String(targetMins).padStart(2, '0')}:${String(targetSecs).padStart(2, '0')}`;
+                document.getElementById('countdown-clock').innerText = countdownStr;
+                document.getElementById('countdown-status-label').innerText = "Until Next Unlock (6:00 PM IST)";
+                
+                // Set flag to force redraw once time travel console activates the map
+                isMapInitialized = false;
+            }
+        }
+
+        // Data processing, filtering & rendering
+        function processDataAndRender() {
+            const bypassFilters = document.getElementById('bypass-filters-toggle').checked;
+            
+            // 1. Exclude categories starting with A, C, G, S
+            let whitelistedCategories = [...new Set(INSTALL_DATABASE.map(item => item.category))];
+            
+            if (!bypassFilters) {
+                whitelistedCategories = whitelistedCategories.filter(cat => {
+                    const firstChar = cat.trim().charAt(0).toUpperCase();
+                    return firstChar !== 'A' && firstChar !== 'C' && firstChar !== 'G' && firstChar !== 'S';
+                });
+            }
+            
+            document.getElementById('kpi-whitelisted-count').innerText = whitelistedCategories.length;
+
+            // 2. Sum installations by category to find the top 5
+            const categorySums = {};
+            whitelistedCategories.forEach(cat => {
+                categorySums[cat] = 0;
+            });
+
+            INSTALL_DATABASE.forEach(item => {
+                if (whitelistedCategories.includes(item.category)) {
+                    categorySums[item.category] += item.installs;
+                }
+            });
+
+            let topCategories = Object.keys(categorySums).sort((a, b) => categorySums[b] - categorySums[a]);
+            if (!bypassFilters) {
+                topCategories = topCategories.slice(0, 5);
+            }
+
+            document.getElementById('kpi-plotted-count').innerText = topCategories.length;
+
+            // 3. Compute aggregate installs of top plotted categories
+            let aggregateInstalls = 0;
+            INSTALL_DATABASE.forEach(item => {
+                if (topCategories.includes(item.category)) {
+                    aggregateInstalls += item.installs;
+                }
+            });
+            document.getElementById('kpi-total-installs').innerText = formatNumber(aggregateInstalls);
+
+            // Populate category dropdown
+            const dropdown = document.getElementById('category-dropdown');
+            const previouslySelected = dropdown.value;
+            dropdown.innerHTML = '';
+
+            topCategories.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.innerText = cat;
+                dropdown.appendChild(opt);
+            });
+
+            // Reselect previously selected if still valid, otherwise pick first
+            if (topCategories.includes(previouslySelected)) {
+                dropdown.value = previouslySelected;
+            } else if (topCategories.length > 0) {
+                dropdown.value = topCategories[0];
+            }
+
+            // Update Map Visuals
+            updateChoroplethMap();
+        }
+
+        function updateChoroplethMap() {
+            const dropdown = document.getElementById('category-dropdown');
+            const selectedCategory = dropdown.value;
+            if (!selectedCategory) return;
+
+            const categoryData = INSTALL_DATABASE.filter(item => item.category === selectedCategory);
+            
+            // Highlight checking (> 1M)
+            const highlightedCountries = categoryData.filter(item => item.installs > 1000000);
+            document.getElementById('kpi-highlighted-count').innerText = highlightedCountries.length;
+
+            // Prepare traces
+            const stdLocs = [], stdZ = [], stdTexts = [];
+            const highLocs = [], highZ = [], highTexts = [];
+
+            categoryData.forEach(item => {
+                const formattedVal = item.installs.toLocaleString();
+                const hoverText = `<b>${item.countryName}</b><br>Category: ${item.category}<br>Installs: ${formattedVal}`;
+                
+                if (item.installs > 1000000) {
+                    highLocs.push(item.countryCode);
+                    highZ.push(item.installs);
+                    highTexts.push(`${hoverText}<br><span style="color: #ffd700; font-weight: bold;">✨ HIGHLIGHTED (> 1M)</span>`);
+                } else {
+                    stdLocs.push(item.countryCode);
+                    stdZ.push(item.installs);
+                    stdTexts.push(`${hoverText}<br><span style="color: #9ca3af;">Standard Volume (≤ 1M)</span>`);
+                }
+            });
+
+            const traces = [];
+
+            // Standard Trace (Low/Medium Volume)
+            if (stdLocs.length > 0) {
+                traces.push({
+                    type: 'choropleth',
+                    locationmode: 'world',
+                    locations: stdLocs,
+                    z: stdZ,
+                    text: stdTexts,
+                    hoverinfo: 'text',
+                    colorscale: [
+                        [0.0, '#10172a'], // deep slate
+                        [1.0, '#38bdf8']  // cyan-blue
+                    ],
+                    showscale: false,
+                    marker: {
+                        line: {
+                            color: 'rgba(255,255,255,0.1)',
+                            width: 0.5
+                        }
+                    }
+                });
+            }
+
+            // Highlighted Trace (High Volume > 1M with gold border)
+            if (highLocs.length > 0) {
+                traces.push({
+                    type: 'choropleth',
+                    locationmode: 'world',
+                    locations: highLocs,
+                    z: highZ,
+                    text: highTexts,
+                    hoverinfo: 'text',
+                    colorscale: [
+                        [0.0, '#f97316'], // bright orange
+                        [0.5, '#ef4444'], // red
+                        [1.0, '#ec4899']  // glowing pink
+                    ],
+                    colorbar: {
+                        title: {
+                            text: 'Installs (>1M)',
+                            font: { color: '#9ca3af', size: 10 }
+                        },
+                        thickness: 12,
+                        len: 0.65,
+                        x: 0.95,
+                        tickfont: { color: '#9ca3af', size: 9 }
+                    },
+                    showscale: true,
+                    marker: {
+                        line: {
+                            color: '#ffd700', // Gold outline
+                            width: 2.0
+                        }
+                    }
+                });
+            }
+
+            const layout = {
+                geo: {
+                    showframe: false,
+                    showcoastlines: true,
+                    coastlinecolor: 'rgba(255, 255, 255, 0.08)',
+                    projection: {
+                        type: 'natural earth'
+                    },
+                    backgroundcolor: 'rgba(0,0,0,0)',
+                    bgcolor: 'rgba(0,0,0,0)',
+                    showland: true,
+                    landcolor: '#13131b',
+                    showlakes: false,
+                    showcountries: true,
+                    countrycolor: 'rgba(255, 255, 255, 0.05)',
+                    countrywidth: 0.5
+                },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                margin: { t: 0, b: 0, l: 0, r: 0 },
+                showlegend: false
+            };
+
+            const config = {
+                responsive: true,
+                displayModeBar: false
+            };
+
+            Plotly.newPlot('plotly-map-canvas', traces, layout, config);
+
+            // Update Audit Table
+            updateAuditTable(categoryData);
+        }
+
+        function updateAuditTable(data) {
+            document.getElementById('audit-table-summary').innerText = `Showing ${data.length} geographic records for selected category`;
+
+            const tbody = document.getElementById('audit-table-body');
+            tbody.innerHTML = '';
+
+            data.forEach(item => {
+                const tr = document.createElement('tr');
+                const isHighlight = item.installs > 1000000;
+                
+                tr.innerHTML = `
+                    <td style="font-family: monospace; font-weight: 700; color: var(--color-accent);">${item.countryCode}</td>
+                    <td style="font-weight: 600;">${item.countryName}</td>
+                    <td>${item.category}</td>
+                    <td style="font-weight: 700; color: #ffffff;">${item.installs.toLocaleString()}</td>
+                    <td>
+                        <span class="status-badge-ui ${isHighlight ? 'highlight' : 'standard'}">
+                            ${isHighlight ? '✨ HIGHLIGHTED' : 'Standard'}
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // DOM Logic & Event Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize lucide icons
+            lucide.createIcons();
+
+            // Set up real clock loop
+            setInterval(updateClock, 1000);
+            updateClock(); // Run immediately
+
+            // Bypass check listener
+            document.getElementById('bypass-filters-toggle').addEventListener('change', () => {
+                processDataAndRender();
+            });
+
+            // Category dropdown listener
+            document.getElementById('category-dropdown').addEventListener('change', () => {
+                updateChoroplethMap();
+            });
+
+            // Time Machine controllers
+            const btnReal = document.getElementById('sim-btn-real');
+            const btnActive = document.getElementById('sim-btn-active');
+            const btnRestricted = document.getElementById('sim-btn-restricted');
+
+            function clearSimBtnActive() {
+                btnReal.classList.remove('active');
+                btnActive.classList.remove('active');
+                btnRestricted.classList.remove('active');
+            }
+
+            btnReal.addEventListener('click', () => {
+                clearSimBtnActive();
+                btnReal.classList.add('active');
+                currentSimMode = 'real';
+                updateClock();
+            });
+
+            btnActive.addEventListener('click', () => {
+                clearSimBtnActive();
+                btnActive.classList.add('active');
+                currentSimMode = 'active';
+                updateClock();
+            });
+
+            btnRestricted.addEventListener('click', () => {
+                clearSimBtnActive();
+                btnRestricted.classList.add('active');
+                currentSimMode = 'restricted';
+                updateClock();
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,253 @@
+
+<h2 class="sr-only">Dual-axis chart comparing average installs and revenue for free vs paid apps in top 3 categories, with time-access restriction between 1–2 PM IST.</h2>
+
+<style>
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  .tag { font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 500; }
+  .metric-card { background: var(--color-background-secondary); border-radius: 8px; padding: 12px 16px; }
+  .metric-label { font-size: 12px; color: var(--color-text-secondary); margin: 0 0 4px; }
+  .metric-val { font-size: 20px; font-weight: 500; margin: 0; color: var(--color-text-primary); }
+  #locked-screen { display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 420px; gap: 16px; }
+  #chart-content { display: none; }
+</style>
+
+<div id="locked-screen">
+  <i class="ti ti-lock" style="font-size: 48px; color: var(--color-text-tertiary);" aria-hidden="true"></i>
+  <p style="font-size: 15px; font-weight: 500; color: var(--color-text-primary); margin: 0;">Dashboard restricted</p>
+  <p style="font-size: 13px; color: var(--color-text-secondary); margin: 0; text-align: center; max-width: 300px;">This chart is only available between <strong>1:00 PM – 2:00 PM IST</strong>. Please check back during that window.</p>
+  <div id="countdown-wrap" style="font-size: 12px; color: var(--color-text-tertiary);"></div>
+</div>
+
+<div id="chart-content">
+  <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 1rem 0 0.5rem;">
+    <div>
+      <p style="margin: 0; font-size: 15px; font-weight: 500; color: var(--color-text-primary);">Free vs Paid — Top 3 categories</p>
+      <p style="margin: 2px 0 0; font-size: 12px; color: var(--color-text-secondary);">Avg installs (bars) · Avg revenue (lines) · Filters applied</p>
+    </div>
+    <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+      <span class="tag" style="background:#E6F1FB; color:#0C447C;">≥ 10K installs</span>
+      <span class="tag" style="background:#E1F5EE; color:#085041;">≥ $10K revenue</span>
+      <span class="tag" style="background:#EEEDFE; color:#3C3489;">Android > 4.0</span>
+      <span class="tag" style="background:#FAEEDA; color:#633806;">Size > 15MB</span>
+      <span class="tag" style="background:#FAECE7; color:#712B13;">Everyone</span>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 12px 0 16px;">
+    <div class="metric-card"><p class="metric-label">Avg installs — Free</p><p class="metric-val" id="m1">—</p></div>
+    <div class="metric-card"><p class="metric-label">Avg installs — Paid</p><p class="metric-val" id="m2">—</p></div>
+    <div class="metric-card"><p class="metric-label">Avg revenue — Free</p><p class="metric-val" id="m3">—</p></div>
+    <div class="metric-card"><p class="metric-label">Avg revenue — Paid</p><p class="metric-val" id="m4">—</p></div>
+  </div>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 10px; font-size: 12px; color: var(--color-text-secondary);">
+    <span style="display:flex;align-items:center;gap:5px;"><span class="legend-dot" style="background:#378ADD;"></span>Free installs</span>
+    <span style="display:flex;align-items:center;gap:5px;"><span class="legend-dot" style="background:#1D9E75;"></span>Paid installs</span>
+    <span style="display:flex;align-items:center;gap:5px;"><span style="width:18px;height:3px;display:inline-block;background:#D4537E;border-radius:2px;border-top: 2px dashed #D4537E;background:transparent;"></span>Free revenue</span>
+    <span style="display:flex;align-items:center;gap:5px;"><span style="width:18px;height:3px;display:inline-block;border-top: 2px solid #BA7517;background:transparent;"></span>Paid revenue</span>
+  </div>
+
+  <div style="position: relative; width: 100%; height: 320px;">
+    <canvas id="dualChart" role="img" aria-label="Dual axis grouped bar and line chart comparing average installs and revenue for free vs paid apps across top 3 categories.">Average installs and revenue for free and paid apps across Games, Education, and Tools categories.</canvas>
+  </div>
+
+  <p style="font-size: 11px; color: var(--color-text-tertiary); margin: 10px 0 0; text-align: right;">
+    <i class="ti ti-clock" style="font-size:13px; vertical-align:-2px;" aria-hidden="true"></i>
+    Live window: 1:00 PM – 2:00 PM IST &nbsp;·&nbsp; <span id="live-badge"></span>
+  </p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const RAW_DATA = [
+  { category: "Games",     type: "Free", installs: 4820000, revenue: 182000, android: "4.1", size: 45, rating: "Everyone", name: "Galaxy Runner Pro" },
+  { category: "Games",     type: "Free", installs: 3100000, revenue: 97000,  android: "4.4", size: 38, rating: "Everyone", name: "Block Blast" },
+  { category: "Games",     type: "Free", installs: 6500000, revenue: 310000, android: "5.0", size: 52, rating: "Everyone", name: "Candy Dash" },
+  { category: "Games",     type: "Paid", installs: 520000,  revenue: 840000, android: "4.2", size: 22, rating: "Everyone", name: "Pixel Dungeon Quest" },
+  { category: "Games",     type: "Paid", installs: 340000,  revenue: 670000, android: "4.3", size: 19, rating: "Everyone", name: "Castle Defense" },
+  { category: "Education", type: "Free", installs: 2400000, revenue: 58000,  android: "4.1", size: 18, rating: "Everyone", name: "MathsKids" },
+  { category: "Education", type: "Free", installs: 1900000, revenue: 73000,  android: "4.4", size: 21, rating: "Everyone", name: "Learn English Basics" },
+  { category: "Education", type: "Free", installs: 3300000, revenue: 120000, android: "5.0", size: 28, rating: "Everyone", name: "Science Lab 3D" },
+  { category: "Education", type: "Paid", installs: 410000,  revenue: 520000, android: "4.2", size: 16, rating: "Everyone", name: "Coding for Kids" },
+  { category: "Education", type: "Paid", installs: 280000,  revenue: 390000, android: "4.3", size: 17, rating: "Everyone", name: "Phonics Mastery App" },
+  { category: "Tools",     type: "Free", installs: 5100000, revenue: 145000, android: "4.4", size: 24, rating: "Everyone", name: "Cleaner Booster" },
+  { category: "Tools",     type: "Free", installs: 4200000, revenue: 98000,  android: "5.0", size: 31, rating: "Everyone", name: "Battery Saver Pro" },
+  { category: "Tools",     type: "Free", installs: 3800000, revenue: 112000, android: "4.1", size: 20, rating: "Everyone", name: "File Manager Lite" },
+  { category: "Tools",     type: "Paid", installs: 390000,  revenue: 760000, android: "4.2", size: 19, rating: "Everyone", name: "Root Explorer Advanced" },
+  { category: "Tools",     type: "Paid", installs: 260000,  revenue: 490000, android: "4.4", size: 22, rating: "Everyone", name: "Wifi Analyzer Pro" },
+  { category: "Games",     type: "Free", installs: 5000,    revenue: 8000,   android: "3.0", size: 10, rating: "Everyone", name: "Tiny Game" },
+  { category: "Education", type: "Paid", installs: 900000,  revenue: 300000, android: "4.0", size: 12, rating: "Everyone", name: "Super Long App Name That Goes Over Limit XY" },
+  { category: "Tools",     type: "Free", installs: 100000,  revenue: 50000,  android: "4.1", size: 14, rating: "Teen",     name: "Parental Control Tool" },
+];
+
+function parseAndroid(v) { return parseFloat(v); }
+
+const filtered = RAW_DATA.filter(d =>
+  d.installs >= 10000 &&
+  d.revenue >= 10000 &&
+  parseAndroid(d.android) > 4.0 &&
+  d.size > 15 &&
+  d.rating === "Everyone" &&
+  d.name.length <= 30
+);
+
+const categories = ["Games", "Education", "Tools"];
+
+function avg(arr, key) {
+  if (!arr.length) return 0;
+  return arr.reduce((s, d) => s + d[key], 0) / arr.length;
+}
+
+const freeInstalls = categories.map(c => Math.round(avg(filtered.filter(d => d.category === c && d.type === "Free"), "installs")));
+const paidInstalls = categories.map(c => Math.round(avg(filtered.filter(d => d.category === c && d.type === "Paid"), "installs")));
+const freeRevenue  = categories.map(c => Math.round(avg(filtered.filter(d => d.category === c && d.type === "Free"), "revenue")));
+const paidRevenue  = categories.map(c => Math.round(avg(filtered.filter(d => d.category === c && d.type === "Paid"), "revenue")));
+
+document.getElementById("m1").textContent = (freeInstalls.reduce((a,b)=>a+b,0)/3/1e6).toFixed(2)+"M";
+document.getElementById("m2").textContent = (paidInstalls.reduce((a,b)=>a+b,0)/3/1e3).toFixed(0)+"K";
+document.getElementById("m3").textContent = "$"+(freeRevenue.reduce((a,b)=>a+b,0)/3/1e3).toFixed(0)+"K";
+document.getElementById("m4").textContent = "$"+(paidRevenue.reduce((a,b)=>a+b,0)/3/1e3).toFixed(0)+"K";
+
+const ctx = document.getElementById("dualChart").getContext("2d");
+new Chart(ctx, {
+  data: {
+    labels: categories,
+    datasets: [
+      {
+        type: "bar",
+        label: "Free installs",
+        data: freeInstalls,
+        backgroundColor: "rgba(55,138,221,0.75)",
+        borderColor: "#378ADD",
+        borderWidth: 1,
+        borderRadius: 4,
+        yAxisID: "yInstalls",
+        order: 2
+      },
+      {
+        type: "bar",
+        label: "Paid installs",
+        data: paidInstalls,
+        backgroundColor: "rgba(29,158,117,0.75)",
+        borderColor: "#1D9E75",
+        borderWidth: 1,
+        borderRadius: 4,
+        yAxisID: "yInstalls",
+        order: 2
+      },
+      {
+        type: "line",
+        label: "Free revenue",
+        data: freeRevenue,
+        borderColor: "#D4537E",
+        borderWidth: 2,
+        borderDash: [6, 3],
+        pointBackgroundColor: "#D4537E",
+        pointRadius: 5,
+        pointStyle: "circle",
+        tension: 0.35,
+        fill: false,
+        yAxisID: "yRevenue",
+        order: 1
+      },
+      {
+        type: "line",
+        label: "Paid revenue",
+        data: paidRevenue,
+        borderColor: "#BA7517",
+        borderWidth: 2,
+        borderDash: [],
+        pointBackgroundColor: "#BA7517",
+        pointRadius: 5,
+        pointStyle: "rectRot",
+        tension: 0.35,
+        fill: false,
+        yAxisID: "yRevenue",
+        order: 1
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (ctx) => {
+            const v = ctx.parsed.y;
+            if (ctx.dataset.yAxisID === "yRevenue") return ` ${ctx.dataset.label}: $${(v/1000).toFixed(0)}K`;
+            return ` ${ctx.dataset.label}: ${(v/1e6).toFixed(2)}M`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        ticks: { color: "#888780", font: { size: 12 }, autoSkip: false },
+        grid: { color: "rgba(136,135,128,0.1)" }
+      },
+      yInstalls: {
+        type: "linear",
+        position: "left",
+        ticks: {
+          color: "#378ADD",
+          font: { size: 11 },
+          callback: v => (v/1e6).toFixed(1)+"M"
+        },
+        grid: { color: "rgba(136,135,128,0.12)" },
+        title: { display: true, text: "Avg installs", color: "#378ADD", font: { size: 11 } }
+      },
+      yRevenue: {
+        type: "linear",
+        position: "right",
+        ticks: {
+          color: "#BA7517",
+          font: { size: 11 },
+          callback: v => "$"+(v/1000).toFixed(0)+"K"
+        },
+        grid: { drawOnChartArea: false },
+        title: { display: true, text: "Avg revenue", color: "#BA7517", font: { size: 11 } }
+      }
+    }
+  }
+});
+
+function getISTHour() {
+  const now = new Date();
+  const ist = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+  return { h: ist.getHours(), m: ist.getMinutes(), s: ist.getSeconds() };
+}
+
+function checkTime() {
+  const { h, m } = getISTHour();
+  const totalMin = h * 60 + m;
+  const inWindow = (totalMin >= 13 * 60) && (totalMin < 14 * 60);
+  const locked = document.getElementById("locked-screen");
+  const content = document.getElementById("chart-content");
+  const badge = document.getElementById("live-badge");
+  if (inWindow) {
+    locked.style.display = "none";
+    content.style.display = "block";
+    const remaining = (14 * 60 - totalMin);
+    badge.textContent = "Live — " + remaining + " min remaining";
+    badge.style.color = "#1D9E75";
+  } else {
+    locked.style.display = "flex";
+    content.style.display = "none";
+    let minUntil;
+    if (totalMin < 13 * 60) {
+      minUntil = 13 * 60 - totalMin;
+    } else {
+      minUntil = (24 * 60 - totalMin) + 13 * 60;
+    }
+    const hrs = Math.floor(minUntil / 60);
+    const mins = minUntil % 60;
+    const wrap = document.getElementById("countdown-wrap");
+    if (wrap) wrap.textContent = hrs > 0 ? `Opens in ${hrs}h ${mins}m` : `Opens in ${mins}m`;
+  }
+}
+
+checkTime();
+setInterval(checkTime, 30000);
+</script>

@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cumulative Installs - Minimalist Dashboard</title>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- ApexCharts -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+    <style>
+        :root {
+            --bg-base: #f8fafc;
+            --bg-sidebar: #ffffff;
+            --bg-card: #ffffff;
+            --border-color: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --accent-color: #4f46e5; /* Indigo */
+            
+            /* Pastel Category Colors for Muted Minimalism */
+            --color-travel-french: #93c5fd; /* Soft Blue */
+            --color-productivity-spanish: #a7f3d0; /* Soft Green */
+            --color-photography-japanese: #fbcfe8; /* Soft Pink */
+            --color-tools: #fde68a; /* Soft Yellow */
+            --color-personalization: #ddd6fe; /* Soft Purple */
+            
+            --font-family: 'Inter', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Minimalist Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Layout Grid */
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Sidebar Styling (Flat White Minimalist) */
+        .sidebar {
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            padding: 32px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+            z-index: 10;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo-section i {
+            color: var(--text-main);
+        }
+
+        .logo-title {
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+        }
+
+        .section-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        /* Time machine panel */
+        .time-machine-panel {
+            background: #f1f5f9;
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .time-status {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-dot.active {
+            background-color: #10b981;
+        }
+
+        .status-dot.restricted {
+            background-color: #ef4444;
+        }
+
+        .ist-clock {
+            font-size: 1.15rem;
+            font-weight: 700;
+            font-family: monospace;
+            color: var(--text-main);
+        }
+
+        .sim-btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .sim-btn {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.15s ease;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sim-btn:hover {
+            border-color: #cbd5e1;
+            color: var(--text-main);
+        }
+
+        .sim-btn.active {
+            background: #ffffff;
+            border-color: var(--text-main);
+            color: var(--text-main);
+            font-weight: 600;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        /* Constraints Panel */
+        .filter-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .filter-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .filter-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .filter-value {
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .filter-desc {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 32px;
+            height: 18px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #e2e8f0;
+            transition: .2s;
+            border-radius: 20px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 12px;
+            width: 12px;
+            left: 3px;
+            bottom: 3px;
+            background-color: #ffffff;
+            transition: .2s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--text-main);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(14px);
+        }
+
+        .filter-badge-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 4px;
+        }
+
+        .filter-badge {
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+
+        /* Main Workspace Area */
+        .main-workspace {
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+
+        /* Workspace Header */
+        .workspace-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 24px;
+        }
+
+        .header-title-block h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: -0.5px;
+        }
+
+        .header-title-block p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .time-badge {
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Metrics Row (Flat Minimalist Grid) */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .metric-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: border-color 0.15s;
+        }
+
+        .metric-card:hover {
+            border-color: #cbd5e1;
+        }
+
+        .metric-title {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: -0.5px;
+        }
+
+        /* Chart Canvas Card */
+        .chart-container-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 28px;
+            min-height: 480px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 12px;
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Locked Screen Overlay (Minimalist Style) */
+        .lock-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.96);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            text-align: center;
+            padding: 32px;
+            gap: 16px;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .lock-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .lock-icon-container {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .lock-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .lock-message {
+            max-width: 440px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .countdown-timer-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-family: monospace;
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            align-items: center;
+        }
+
+        .countdown-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            font-family: var(--font-family);
+        }
+
+        /* Table Card */
+        .table-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.8rem;
+        }
+
+        th {
+            padding: 10px 14px;
+            color: var(--text-muted);
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #f1f5f9;
+            color: var(--text-main);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: #f8fafc;
+        }
+
+        .category-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            border: 1px solid #e2e8f0;
+        }
+
+        .category-pill .translation-subtext {
+            font-size: 0.6rem;
+            opacity: 0.7;
+            margin-left: 3px;
+            font-weight: normal;
+        }
+
+        .highlight-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            color: #059669;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        
+        <!-- Sidebar Controls -->
+        <aside class="sidebar">
+            
+            <!-- Logo Section -->
+            <div class="logo-section">
+                <i data-lucide="layers" style="width: 20px; height: 20px;"></i>
+                <span class="logo-title">StackView</span>
+            </div>
+
+            <!-- Time Display / Status -->
+            <div class="time-machine-panel">
+                <div class="time-status">
+                    <span class="section-title" style="margin: 0;">IST Clock</span>
+                    <span id="status-badge" class="status-dot restricted"></span>
+                </div>
+                <div id="clock-display" class="ist-clock">12:00:00 PM</div>
+                <div id="status-text" class="filter-desc" style="font-weight: 600;">System Locked</div>
+                
+                <div class="simulation-mode-title">Admin Time Override</div>
+                <div class="sim-btn-group">
+                    <button class="sim-btn active" id="sim-btn-real">
+                        <span>Real System Time</span>
+                        <i data-lucide="clock" style="width: 12px; height: 12px;"></i>
+                    </button>
+                    <button class="sim-btn" id="sim-btn-active">
+                        <span>Simulate 5:00 PM IST (Active)</span>
+                        <i data-lucide="unlock" style="width: 12px; height: 12px;"></i>
+                    </button>
+                    <button class="sim-btn" id="sim-btn-restricted">
+                        <span>Simulate 12:00 PM IST (Locked)</span>
+                        <i data-lucide="lock" style="width: 12px; height: 12px;"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Whitelisting Constraints -->
+            <div>
+                <h3 class="section-title">Required Constraints</h3>
+                <div class="filter-controls">
+                    
+                    <!-- Time window -->
+                    <div class="filter-item">
+                        <div class="filter-label">
+                            <span>Operations Frame</span>
+                            <span class="filter-value">Active</span>
+                        </div>
+                        <span class="filter-desc">Graph works only between 4 PM IST and 6 PM IST.</span>
+                    </div>
+
+                    <!-- Category Letters -->
+                    <div class="filter-item">
+                        <div class="filter-label">
+                            <span>Category Letter</span>
+                            <span class="filter-value">T or P Only</span>
+                        </div>
+                        <span class="filter-desc">Only show categories starting with 'T' or 'P'.</span>
+                    </div>
+
+                    <!-- Rating Filter -->
+                    <div class="filter-item">
+                        <div class="filter-label">
+                            <span>Average Rating</span>
+                            <span class="filter-value">&ge; 4.2 ★</span>
+                        </div>
+                        <span class="filter-desc">Filter out apps with ratings below 4.2.</span>
+                    </div>
+
+                    <!-- Name Digit Exclusions -->
+                    <div class="filter-item">
+                        <div class="filter-label">
+                            <span>Name Digits Exclude</span>
+                            <span class="filter-value">Active</span>
+                        </div>
+                        <span class="filter-desc">Exclude app names containing any numbers/digits.</span>
+                    </div>
+
+                    <!-- Size Range -->
+                    <div class="filter-item">
+                        <div class="filter-label">
+                            <span>App Size range</span>
+                            <span class="filter-value">20 - 80 MB</span>
+                        </div>
+                        <span class="filter-desc">Filter by installation size (between 20MB and 80MB).</span>
+                    </div>
+
+                    <!-- Reviews -->
+                    <div class="filter-item">
+                        <div class="filter-label">
+                            <span>Reviews count</span>
+                            <span class="filter-value">&gt; 1,000</span>
+                        </div>
+                        <span class="filter-desc">Only show apps with user reviews count above 1,000.</span>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Bypass Switch -->
+            <div style="margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                <div class="filter-item">
+                    <div class="filter-label">
+                        <span>Bypass Filters</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="bypass-filters-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <span class="filter-desc">Disable required filters to show full database cumulative chart.</span>
+                </div>
+            </div>
+
+        </aside>
+
+        <!-- Main Workspace Area -->
+        <main class="main-workspace">
+            
+            <!-- Workspace Header -->
+            <div class="workspace-header">
+                <div class="header-title-block">
+                    <h1>Cumulative Category Growth</h1>
+                    <p>Tracing the cumulative volume of installs over time for active app categories plotted as a stacked area chart</p>
+                </div>
+                <div class="time-badge">
+                    <i data-lucide="shield" style="width: 13px; height: 13px;"></i>
+                    <span>IST 4 PM - 6 PM Lock Active</span>
+                </div>
+            </div>
+
+            <!-- KPI Row -->
+            <div class="metrics-grid">
+                
+                <!-- KPI 1: Active Plotted Categories -->
+                <div class="metric-card">
+                    <div class="metric-title">
+                        <span>Active Categories</span>
+                        <i data-lucide="folder" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
+                    </div>
+                    <div id="kpi-plotted-categories" class="metric-value">4</div>
+                    <span class="filter-desc">Filtered whitelisted classes</span>
+                </div>
+
+                <!-- KPI 2: High Growth Months -->
+                <div class="metric-card">
+                    <div class="metric-title">
+                        <span>High Growth Months</span>
+                        <i data-lucide="zap" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
+                    </div>
+                    <div id="kpi-growth-periods" class="metric-value">2</div>
+                    <span class="filter-desc">Months with category growth &gt; 25%</span>
+                </div>
+
+                <!-- KPI 3: Ending Volume (June 2026) -->
+                <div class="metric-card">
+                    <div class="metric-title">
+                        <span>Total Installs Plotted</span>
+                        <i data-lucide="activity" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
+                    </div>
+                    <div id="kpi-total-cumulative" class="metric-value">4.5M</div>
+                    <span class="filter-desc">June aggregate cumulative sum</span>
+                </div>
+
+                <!-- KPI 4: Matching App Count -->
+                <div class="metric-card">
+                    <div class="metric-title">
+                        <span>Matching Apps</span>
+                        <i data-lucide="check-circle" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
+                    </div>
+                    <div id="kpi-matching-apps" class="metric-value">5 / 12</div>
+                    <span class="filter-desc">Apps satisfying all conditions</span>
+                </div>
+
+            </div>
+
+            <!-- Cumulative Area Chart Card -->
+            <div class="chart-container-card" id="chart-card">
+                
+                <div class="card-header">
+                    <div class="card-title">
+                        <i data-lucide="area-chart" style="width: 16px; height: 16px; color: var(--text-main);"></i>
+                        <span>Cumulative Installations Stacked Area Trend</span>
+                    </div>
+                    <div class="filter-desc">Highlight markers indicate category MoM growth &gt; 25%</div>
+                </div>
+
+                <!-- Canvas -->
+                <div id="cumulative-chart-canvas" style="width: 100%; min-height: 380px;"></div>
+
+                <!-- Lock Screen Overlay -->
+                <div class="lock-overlay" id="lock-overlay">
+                    <div class="lock-icon-container">
+                        <i data-lucide="lock" style="width: 24px; height: 24px;"></i>
+                    </div>
+                    <div class="lock-title">Cumulative Trend Locked</div>
+                    <div class="lock-message">
+                        This stacked area chart operates and displays analytical metrics only between the window of <strong>4:00 PM IST and 6:00 PM IST</strong> daily.
+                    </div>
+                    <div class="countdown-timer-box">
+                        <span id="countdown-clock">00:00:00</span>
+                        <span class="countdown-label" id="countdown-status-label">Until Next operations window</span>
+                    </div>
+                    <div class="filter-desc" style="max-width: 400px; font-size: 0.65rem;">
+                        Use the <strong>Admin Time Override</strong> console in the sidebar to bypass this restriction for evaluation and testing.
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Data Breakdown Table -->
+            <div class="table-card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i data-lucide="list" style="width: 16px; height: 16px; color: var(--text-main);"></i>
+                        <span>Audit Data Details</span>
+                    </div>
+                    <div class="filter-desc" id="audit-table-summary">Installs database audit</div>
+                </div>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>App Name</th>
+                                <th>Category</th>
+                                <th>Rating</th>
+                                <th>Size (MB)</th>
+                                <th>Reviews</th>
+                                <th>Cumulative Installs (Jun)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-table-body">
+                            <!-- Dynamically generated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+
+    </div>
+
+    <script>
+        // Database containing 12 apps with ratings, sizes, reviews, and monthly installs trends
+        const APP_DATABASE = [
+            // ================= Whitelisted (rating>=4.2, no digits in name, category T/P, reviews>1000, size 20-80MB) =================
+            // Photography (P - whitelisted, 写真)
+            { name: "CamEditor", category: "Photography", rating: 4.5, size: 35, reviews: 12000, installs: { "Jan": 100000, "Feb": 110000, "Mar": 150000, "Apr": 160000, "May": 170000, "Jun": 220000 } },
+            
+            // Productivity (P - whitelisted, Productividad)
+            { name: "TaskManager", category: "Productivity", rating: 4.3, size: 25, reviews: 8000, installs: { "Jan": 80000, "Feb": 90000, "Mar": 120000, "Apr": 130000, "May": 140000, "Jun": 180000 } },
+
+            // Travel & Local (T - whitelisted, Voyage et infos locales)
+            { name: "GuideMap", category: "Travel & Local", rating: 4.4, size: 48, reviews: 15000, installs: { "Jan": 120000, "Feb": 130000, "Mar": 170000, "Apr": 180000, "May": 190000, "Jun": 250000 } },
+
+            // Tools (T - whitelisted)
+            { name: "FileManager", category: "Tools", rating: 4.2, size: 30, reviews: 5000, installs: { "Jan": 90000, "Feb": 95000, "Mar": 130000, "Apr": 140000, "May": 150000, "Jun": 200000 } },
+
+            // Personalization (P - whitelisted)
+            { name: "ThemePack", category: "Personalization", rating: 4.6, size: 22, reviews: 4500, installs: { "Jan": 50000, "Feb": 55000, "Mar": 70000, "Apr": 75000, "May": 80000, "Jun": 110000 } },
+
+            // ================= EXCLUDED BY VARIOUS FILTERS =================
+            // Excluded because of numbers in name
+            { name: "CamEditor 3D", category: "Photography", rating: 4.5, size: 35, reviews: 12000, installs: { "Jan": 100000, "Feb": 110000, "Mar": 150000, "Apr": 160000, "May": 170000, "Jun": 220000 } },
+            { name: "Task 2 Do", category: "Productivity", rating: 4.3, size: 25, reviews: 8000, installs: { "Jan": 80000, "Feb": 90000, "Mar": 120000, "Apr": 130000, "May": 140000, "Jun": 180000 } },
+
+            // Excluded because of category letter (D is not T or P)
+            { name: "Tinder App", category: "Dating", rating: 4.2, size: 45, reviews: 15000, installs: { "Jan": 100000, "Feb": 110000, "Mar": 120000, "Apr": 130000, "May": 140000, "Jun": 150000 } },
+
+            // Excluded because of low rating (< 4.2)
+            { name: "OldEditor", category: "Photography", rating: 3.8, size: 45, reviews: 12000, installs: { "Jan": 100000, "Feb": 110000, "Mar": 150000, "Apr": 160000, "May": 170000, "Jun": 220000 } },
+
+            // Excluded because of reviews (<= 1000)
+            { name: "Quick Notes", category: "Productivity", rating: 4.5, size: 28, reviews: 450, installs: { "Jan": 20000, "Feb": 22000, "Mar": 25000, "Apr": 28000, "May": 30000, "Jun": 32000 } },
+
+            // Excluded because of app size (too small < 20MB)
+            { name: "MicroPaint", category: "Photography", rating: 4.4, size: 8, reviews: 4500, installs: { "Jan": 50000, "Feb": 55000, "Mar": 70000, "Apr": 75000, "May": 80000, "Jun": 110000 } },
+
+            // Excluded because of app size (too large > 80MB)
+            { name: "HeavyMap", category: "Travel & Local", rating: 4.5, size: 150, reviews: 15000, installs: { "Jan": 120000, "Feb": 130000, "Mar": 170000, "Apr": 180000, "May": 190000, "Jun": 250000 } }
+        ];
+
+        // Mapped translations & colors
+        const categoryTranslations = {
+            'Travel & Local': 'Voyage et infos locales', // French
+            'Productivity': 'Productividad',            // Spanish
+            'Photography': '写真',                     // Japanese
+            'Tools': 'Tools',
+            'Personalization': 'Personalization',
+            'Dating': 'Partnersuche'                     // In case of bypass
+        };
+
+        const categoryColors = {
+            'Voyage et infos locales': '#93c5fd', // Soft Blue
+            'Productividad': '#a7f3d0',            // Soft Green
+            '写真': '#fbcfe8',                     // Soft Pink
+            'Tools': '#fde68a',                    // Soft Yellow
+            'Personalization': '#ddd6fe',           // Soft Purple
+            'Partnersuche': '#f87171'              // Soft Red
+        };
+
+        const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+
+        // Variables
+        let currentSimMode = 'real';
+        let chartInstance = null;
+
+        // Converter
+        function formatNumber(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(0) + 'k';
+            return num;
+        }
+
+        // IST Clock and locking
+        function getISTTime() {
+            const date = new Date();
+            const utcMs = date.getTime() + (date.getTimezoneOffset() * 60000);
+            const istOffsetMs = 5.5 * 60 * 60000;
+            return new Date(utcMs + istOffsetMs);
+        }
+
+        function updateClock() {
+            let activeDate;
+            if (currentSimMode === 'real') {
+                activeDate = getISTTime();
+            } else if (currentSimMode === 'active') {
+                // Simulate 5:00:00 PM IST
+                activeDate = new Date();
+                activeDate.setHours(17, 0, 0);
+            } else {
+                // Simulate 12:00:00 PM IST
+                activeDate = new Date();
+                activeDate.setHours(12, 0, 0);
+            }
+
+            const hrs = activeDate.getHours();
+            const mins = activeDate.getMinutes();
+            const secs = activeDate.getSeconds();
+            const ampm = hrs >= 12 ? 'PM' : 'AM';
+            const displayHrs = hrs % 12 || 12;
+            
+            const timeStr = `${String(displayHrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')} ${ampm}`;
+            document.getElementById('clock-display').innerText = timeStr + " IST";
+
+            // Lock check: works only between 4 PM (16:00) and 6 PM (18:00) IST
+            const inRange = hrs >= 16 && hrs < 18;
+            const statusBadge = document.getElementById('status-badge');
+            const statusText = document.getElementById('status-text');
+            const lockOverlay = document.getElementById('lock-overlay');
+
+            if (inRange) {
+                statusBadge.style.backgroundColor = '#10b981';
+                statusText.innerText = 'System Active (4 PM - 6 PM)';
+                statusText.style.color = '#10b981';
+
+                if (!lockOverlay.classList.contains('hidden')) {
+                    lockOverlay.classList.add('hidden');
+                }
+
+                if (!chartInstance) {
+                    renderChart();
+                }
+            } else {
+                statusBadge.style.backgroundColor = '#ef4444';
+                statusText.innerText = 'Outside Operating Window';
+                statusText.style.color = '#ef4444';
+
+                if (lockOverlay.classList.contains('hidden')) {
+                    lockOverlay.classList.remove('hidden');
+                }
+
+                // Countdown until 4 PM IST
+                let targetHrs = 16 - hrs;
+                let targetMins = 0 - mins;
+                let targetSecs = 0 - secs;
+
+                if (targetHrs < 0 || (targetHrs === 0 && targetMins < 0)) {
+                    targetHrs += 24;
+                }
+                if (targetSecs < 0) {
+                    targetSecs += 60;
+                    targetMins -= 1;
+                }
+                if (targetMins < 0) {
+                    targetMins += 60;
+                    targetHrs -= 1;
+                }
+
+                const countdownStr = `${String(targetHrs).padStart(2, '0')}:${String(targetMins).padStart(2, '0')}:${String(targetSecs).padStart(2, '0')}`;
+                document.getElementById('countdown-clock').innerText = countdownStr;
+                document.getElementById('countdown-status-label').innerText = "Until Next Unlock (4:00 PM IST)";
+            }
+        }
+
+        // Filtering engine
+        function getFilteredData() {
+            const bypass = document.getElementById('bypass-filters-toggle').checked;
+            
+            return APP_DATABASE.filter(app => {
+                if (bypass) return true;
+
+                // 1. Average rating of at least 4.2
+                if (app.rating < 4.2) return false;
+
+                // 2. App name must not contain numbers
+                if (/\d/.test(app.name)) return false;
+
+                // 3. Category starts with T or P
+                const catFirst = app.category.trim().charAt(0).toUpperCase();
+                if (catFirst !== 'T' && catFirst !== 'P') return false;
+
+                // 4. Reviews > 1000
+                if (app.reviews <= 1000) return false;
+
+                // 5. App size between 20 and 80 MB
+                if (app.size < 20 || app.size > 80) return false;
+
+                return true;
+            });
+        }
+
+        // Calculations & UI updates
+        function processDashboardUI() {
+            const filteredApps = getFilteredData();
+            
+            // Unique plotted categories count
+            const categoriesPlotted = [...new Set(filteredApps.map(app => app.category))];
+            document.getElementById('kpi-plotted-categories').innerText = categoriesPlotted.length;
+            document.getElementById('kpi-matching-apps').innerText = `${filteredApps.length} / ${APP_DATABASE.length}`;
+
+            // Calculate cumulative installations over time per category
+            const categoryMonthly = {};
+            
+            filteredApps.forEach(app => {
+                const transCat = categoryTranslations[app.category] || app.category;
+                if (!categoryMonthly[transCat]) {
+                    categoryMonthly[transCat] = {};
+                    MONTHS.forEach(m => categoryMonthly[transCat][m] = 0);
+                }
+                MONTHS.forEach(m => {
+                    categoryMonthly[transCat][m] += app.installs[m] || 0;
+                });
+            });
+
+            // Cumulative running sum calculation
+            const categoryCumulative = {};
+            Object.keys(categoryMonthly).forEach(cat => {
+                categoryCumulative[cat] = [];
+                let runningSum = 0;
+                MONTHS.forEach(m => {
+                    runningSum += categoryMonthly[cat][m];
+                    categoryCumulative[cat].push(runningSum);
+                });
+            });
+
+            // Total cumulative installs sum of June
+            let aggregateJuneCumulative = 0;
+            Object.keys(categoryCumulative).forEach(cat => {
+                const arr = categoryCumulative[cat];
+                if (arr.length > 0) {
+                    aggregateJuneCumulative += arr[arr.length - 1];
+                }
+            });
+            document.getElementById('kpi-total-cumulative').innerText = formatNumber(aggregateJuneCumulative);
+
+            // Highlight period checking: MoM growth percentage of monthly new installs > 25%
+            const growthAnnotations = [];
+            let highGrowthCount = 0;
+
+            // Loop through months (excluding Jan) to evaluate growth of active categories
+            for (let i = 1; i < MONTHS.length; i++) {
+                const prev = MONTHS[i-1];
+                const curr = MONTHS[i];
+                
+                let isMonthHighlighted = false;
+                let maxGrowthPct = 0;
+
+                Object.keys(categoryMonthly).forEach(cat => {
+                    const prevVal = categoryMonthly[cat][prev];
+                    const currVal = categoryMonthly[cat][curr];
+
+                    if (prevVal > 0) {
+                        const pct = ((currVal - prevVal) / prevVal) * 100;
+                        if (pct > 25) {
+                            isMonthHighlighted = true;
+                            if (pct > maxGrowthPct) {
+                                maxGrowthPct = pct;
+                            }
+                        }
+                    }
+                });
+
+                if (isMonthHighlighted) {
+                    highGrowthCount++;
+                    // Add X-axis annotation covering this month window
+                    growthAnnotations.push({
+                        x: prev,
+                        x2: curr,
+                        fillColor: '#10b981',
+                        opacity: 0.1,
+                        borderColor: '#10b981',
+                        strokeDashArray: 2,
+                        label: {
+                            borderColor: 'transparent',
+                            style: {
+                                color: '#10b981',
+                                background: '#f0fdf4',
+                                fontSize: '8px',
+                                fontWeight: 700
+                            },
+                            text: `MoM Growth > 25%`
+                        }
+                    });
+                }
+            }
+
+            document.getElementById('kpi-growth-periods').innerText = highGrowthCount;
+
+            // Audit Table Build
+            const tbody = document.getElementById('audit-table-body');
+            tbody.innerHTML = '';
+
+            filteredApps.forEach(app => {
+                const tr = document.createElement('tr');
+                const transCat = categoryTranslations[app.category] || app.category;
+                const pillColor = categoryColors[transCat] || '#888888';
+                
+                // June cumulative calculation for this app
+                let sum = 0;
+                MONTHS.forEach(m => sum += app.installs[m]);
+
+                tr.innerHTML = `
+                    <td style="font-weight: 600;">${app.name}</td>
+                    <td>
+                        <span class="category-pill" style="border-color: ${pillColor}66; background-color: ${pillColor}22; color: var(--text-main);">
+                            ${transCat}
+                            ${transCat !== app.category ? `<span class="translation-subtext">(${app.category})</span>` : ''}
+                        </span>
+                    </td>
+                    <td style="font-weight: 700;"><i data-lucide="star" style="width: 11px; height: 11px; display: inline-block; fill: #fbbf24; stroke: none; margin-right: 4px;"></i>${app.rating}</td>
+                    <td>${app.size} MB</td>
+                    <td>${app.reviews.toLocaleString()}</td>
+                    <td style="font-family: monospace; font-weight: 700;">${sum.toLocaleString()}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            lucide.createIcons();
+
+            // Re-render chart series
+            if (chartInstance) {
+                updateChartSeries(categoryCumulative, growthAnnotations);
+            }
+        }
+
+        // Stacked Area chart render options
+        function renderChart() {
+            const container = document.getElementById('cumulative-chart-canvas');
+            if (!container) return;
+
+            const options = {
+                series: [], // Populated in update
+                chart: {
+                    type: 'area',
+                    height: 380,
+                    stacked: true,
+                    background: 'transparent',
+                    foreColor: 'var(--text-muted)',
+                    toolbar: {
+                        show: false
+                    },
+                    zoom: {
+                        enabled: false
+                    }
+                },
+                colors: [],
+                dataLabels: {
+                    enabled: false
+                },
+                stroke: {
+                    curve: 'smooth',
+                    width: 2
+                },
+                fill: {
+                    type: 'solid',
+                    opacity: 0.45
+                },
+                xaxis: {
+                    categories: MONTHS,
+                    type: 'category',
+                    title: {
+                        text: 'Analytical Calendar Months (2026)',
+                        style: { color: 'var(--text-muted)', fontSize: '10px', fontWeight: 600 }
+                    },
+                    axisBorder: { color: 'var(--border-color)' },
+                    axisTicks: { color: 'var(--border-color)' }
+                },
+                yaxis: {
+                    title: {
+                        text: 'Cumulative Plotted Installs Running Sum',
+                        style: { color: 'var(--text-muted)', fontSize: '10px', fontWeight: 600 }
+                    },
+                    labels: {
+                        formatter: function(val) {
+                            return formatNumber(val);
+                        }
+                    }
+                },
+                grid: {
+                    borderColor: '#f1f5f9',
+                    strokeDashArray: 2
+                },
+                tooltip: {
+                    theme: 'light',
+                    y: {
+                        formatter: function(val) {
+                            return val.toLocaleString() + ' Cumulative';
+                        }
+                    }
+                },
+                legend: {
+                    position: 'bottom',
+                    fontFamily: 'Inter',
+                    fontSize: '11px',
+                    markers: {
+                        radius: 4
+                    }
+                }
+            };
+
+            chartInstance = new ApexCharts(container, options);
+            chartInstance.render();
+
+            // Force refresh of database & chart series
+            processDashboardUI();
+        }
+
+        function updateChartSeries(categoryCumulative, growthAnnotations) {
+            const seriesArray = Object.keys(categoryCumulative).map(catName => {
+                return {
+                    name: catName,
+                    data: categoryCumulative[catName]
+                };
+            });
+
+            const colorsArray = seriesArray.map(s => categoryColors[s.name] || '#888888');
+
+            chartInstance.updateOptions({
+                colors: colorsArray,
+                annotations: {
+                    xaxis: growthAnnotations
+                }
+            }, false, true);
+
+            chartInstance.updateSeries(seriesArray);
+        }
+
+        // DOM Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+
+            // Clock loops
+            setInterval(updateClock, 1000);
+            updateClock();
+
+            // Setup bypass switch
+            document.getElementById('bypass-filters-toggle').addEventListener('change', () => {
+                processDashboardUI();
+            });
+
+            // Time overrides
+            const btnReal = document.getElementById('sim-btn-real');
+            const btnActive = document.getElementById('sim-btn-active');
+            const btnRestricted = document.getElementById('sim-btn-restricted');
+
+            function clearSimBtnActive() {
+                btnReal.classList.remove('active');
+                btnActive.classList.remove('active');
+                btnRestricted.classList.remove('active');
+            }
+
+            btnReal.addEventListener('click', () => {
+                clearSimBtnActive();
+                btnReal.classList.add('active');
+                currentSimMode = 'real';
+                updateClock();
+            });
+
+            btnActive.addEventListener('click', () => {
+                clearSimBtnActive();
+                btnActive.classList.add('active');
+                currentSimMode = 'active';
+                updateClock();
+            });
+
+            btnRestricted.addEventListener('click', () => {
+                clearSimBtnActive();
+                btnRestricted.classList.add('active');
+                currentSimMode = 'restricted';
+                updateClock();
+            });
+        });
+    </script>
+</body>
+</html>
